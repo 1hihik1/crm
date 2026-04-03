@@ -14,7 +14,7 @@ new class extends Component
     public ?int $part_id = null;
     public bool $isEditMode = false;
 
-    // Правила валидации
+    //правила валидации
     protected function rules()
     {
         return [
@@ -23,13 +23,13 @@ new class extends Component
         ];
     }
 
-    // Сброс пагинации при поиске
+    //сброс пагинации при поиске
     public function updatingSearch()
     {
         $this->resetPage();
     }
 
-    // Данные для шаблона
+    //данные для шаблона с филтрацией
     public function with(): array
     {
         return [
@@ -39,7 +39,7 @@ new class extends Component
         ];
     }
 
-    // Сохранение / Обновление
+    // сохранение/обновление
     public function store()
     {
         $this->validate();
@@ -53,7 +53,7 @@ new class extends Component
         session()->flash('message', 'Запчасть успешно сохранена.');
     }
 
-    // Редактирование
+    // редактирование
     public function edit(int $id)
     {
         $part = Part::findOrFail($id);
@@ -63,7 +63,7 @@ new class extends Component
         $this->isEditMode = true;
     }
 
-    // Удаление
+    // удаление
     public function delete(int $id)
     {
         Part::findOrFail($id)->delete();

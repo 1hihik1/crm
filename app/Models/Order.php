@@ -14,6 +14,7 @@ class Order extends Model
         'completed_at' => 'datetime',
     ];
 
+    public function workplace() { return $this->belongsTo(Workplace::class); }
     public function client() { return $this->belongsTo(User::class, 'user_id'); }
     public function employee() { return $this->belongsTo(User::class, 'employee_id'); }
     public function car() { return $this->belongsTo(Car::class); }
