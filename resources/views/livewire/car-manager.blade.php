@@ -4,6 +4,7 @@ use App\Models\Car;
 use App\Models\User;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Auth;
 
 new class extends Component
 {
@@ -40,21 +41,27 @@ new class extends Component
 
     //данные для шаблона (список авто и список пользователей)
     public function with(): array
-{
-    return [
-        'cars' => Car::where(function ($query) {
-                $query->where('brand', 'like', "%{$this->search}%")
+    {
+        $query = Car::query();
+
+        // БЕЗОПАСНОСТЬ: Если это клиент, жестко фильтруем только его машины
+        if (Auth::user()?->isClient()) {
+            $query->where('user_id', Auth::id());
+        }
+
+        return [
+            'cars' => $query->where(function ($q) {
+                    $q->where('brand', 'like', "%{$this->search}%")
                       ->orWhere('model', 'like', "%{$this->search}%")
                       ->orWhere('vin', 'like', "%{$this->search}%")
                       ->orWhere('license_plate', 'like', "%{$this->search}%");
-            })
-            ->latest()
-            ->paginate(10),
+                })
+                ->latest()
+                ->paginate(10),
 
-        // фильтрация коллекции
-        'users' => User::all()->filter(fn($user) => $user->isClient())->values(),
-    ];
-}
+            'users' => User::all()->filter(fn($user) => $user->isClient())->values(),
+        ];
+    }
 
     // Сохранение / Обновление
     public function store()
@@ -114,7 +121,7 @@ new class extends Component
             @endif
 
             <!-- Форма -->
-            @if (!auth()->user()->isClient())
+            @if (!Auth::user()->isClient())
             <div class="mb-8 p-4 bg-gray-50 rounded border">
                 <h3 class="text-lg font-semibold mb-4">{{ $isEditMode ? 'Изменить автомобиль' : 'Новый автомобиль' }}</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -194,7 +201,7 @@ new class extends Component
                             <td class="p-2 border">{{ $car->vin }}</td>
                             <td class="p-2 border">{{ $car->license_plate ?? '—' }}</td>
                             <td class="p-2 border">
-                                @if (!auth()->user()->isClient())
+                                @if (!Auth::user()->isClient())
                                     <button wire:click="edit({{ $car->id }})" class="text-indigo-600">Ред.</button>
                                     <button wire:click="delete({{ $car->id }})" wire:confirm="Вы уверены?" class="text-red-600 ml-2">Удалить</button>
                                 @else

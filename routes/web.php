@@ -18,7 +18,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Volt::route('/parts', 'part-manager')->name('parts.index');
     Volt::route('/cars', 'car-manager')->name('cars.index');
-    Volt::route('/orders', 'order-manager')->name('orders.index');
+    // Volt::route('/orders', 'order-manager')->name('orders.index');
+    Volt::route('/orders', 'order-list')->name('orders.index');
+    Volt::route('/orders/{id}', 'order-detail')->name('orders.detail');
 });
 
 require __DIR__.'/auth.php';
