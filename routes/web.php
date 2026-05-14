@@ -12,11 +12,15 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:admin|employee'])->group(function () {
+    Volt::route('/parts', 'part-manager')->name('parts.index');
+    // Сюда же позже добавим поставщиков, закупки и комнаты
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Volt::route('/parts', 'part-manager')->name('parts.index');
     Volt::route('/cars', 'car-manager')->name('cars.index');
     // Volt::route('/orders', 'order-manager')->name('orders.index');
     Volt::route('/orders', 'order-list')->name('orders.index');

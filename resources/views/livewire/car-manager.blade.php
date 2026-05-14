@@ -21,6 +21,7 @@ new class extends Component
     public bool $isEditMode = false;
 
     // правила валидации
+    // Правила валидации
     protected function rules()
     {
         return [
@@ -28,8 +29,27 @@ new class extends Component
             'brand'         => 'required|string|max:255',
             'model'         => 'required|string|max:255',
             'year'          => 'required|integer|min:1900|max:' . date('Y'),
-            'vin'           => 'required|string|max:17|unique:cars,vin,' . $this->car_id,
-            'license_plate' => 'nullable|string|max:20',
+            
+            // VIN: ровно 17 символов + исключение текущей записи при проверке уникальности
+            'vin'           => 'required|string|size:17|unique:cars,vin,' . $this->car_id,
+            
+            //госномер- используется массив для регулярок, чтобы избежать проблем с экранированием
+            'license_plate' => [
+                'nullable', 
+                'string', 
+                'regex:/^[ABCEHKMOPTXY]\d{3}[ABCEHKMOPTXY]{2}\s\d{2,3}$/'
+            ],
+        ];
+    }
+
+    //кастомные сообщения об ошибках у полей формы
+    protected function messages()
+    {
+        return [
+            'vin.size' => 'VIN-номер должен состоять ровно из 17 символов.',
+            'vin.unique' => 'Автомобиль с таким VIN уже зарегистрирован в системе.',
+            'year.max' => 'Год выпуска не может быть в будущем.',
+            'license_plate.regex' => 'Госномер введен неверно. Формат: А123АА 77 (или 777).',
         ];
     }
 

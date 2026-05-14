@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->text('address')->nullable();
             $table->decimal('discount', 5, 2)->default(0); //скидка
-            $table->string('role')->default('client');     // admin, employee, client
+            // $table->string('role')->default('client');     // admin, employee, client
             $table->string('position')->nullable();        // должность
             $table->decimal('salary', 10, 2)->nullable();  //ЗП
             $table->timestamp('email_verified_at')->nullable();

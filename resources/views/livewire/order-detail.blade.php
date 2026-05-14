@@ -43,8 +43,8 @@ new class extends Component
     public function mount(string $id)
     {
         // Загружаем справочники
-        $this->clients = User::where('role', User::ROLE_CLIENT)->get();
-        $this->employees = User::whereIn('role', [User::ROLE_EMPLOYEE, User::ROLE_ADMIN])->get();
+        $this->clients = User::role('client')->get();
+        $this->employees = User::role('employee')->get();
         $this->cars = []; // изначально машин нет, пока не выбран клиент
         $this->workplaces = Workplace::all();
         $this->availableParts = Part::all();

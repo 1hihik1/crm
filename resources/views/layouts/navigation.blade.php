@@ -15,9 +15,11 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Дэшборд') }}
                     </x-nav-link>
+                    @role('admin|employee')
                     <x-nav-link :href="route('parts.index')" :active="request()->routeIs('parts.index')">
                         {{ __('Запчасти') }}
                     </x-nav-link>
+                    @endrole
                     <x-nav-link :href="route('cars.index')" :active="request()->routeIs('cars.index')">
                         {{ __('Машины') }}
                     </x-nav-link>
