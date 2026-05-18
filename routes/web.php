@@ -13,7 +13,7 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'role:admin|employee'])->group(function () {
-    Volt::route('/parts', 'part-manager')->name('parts.index');
+    Volt::route('/parts', 'parts-manager')->name('parts.index');
     Volt::route('/rooms', 'room-manager')->name('rooms.index');
     Volt::route('/services', 'service-manager')->name('services.index');
     Volt::route('/purchases', 'purchase-manager')->name('purchases.index');
@@ -28,5 +28,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('/orders', 'order-list')->name('orders.index');
     Volt::route('/orders/{id}', 'order-detail')->name('orders.detail');
 });
+
 
 require __DIR__.'/auth.php';
