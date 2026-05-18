@@ -14,7 +14,9 @@ Route::get('/dashboard', function () {
 
 Route::middleware(['auth', 'role:admin|employee'])->group(function () {
     Volt::route('/parts', 'part-manager')->name('parts.index');
-    // Сюда же позже добавим поставщиков, закупки и комнаты
+    Volt::route('/rooms', 'room-manager')->name('rooms.index');
+    Volt::route('/services', 'service-manager')->name('services.index');
+    Volt::route('/purchases', 'purchase-manager')->name('purchases.index');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

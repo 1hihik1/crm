@@ -19,6 +19,15 @@
                     <x-nav-link :href="route('parts.index')" :active="request()->routeIs('parts.index')">
                         {{ __('Запчасти') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('rooms.index')" :active="request()->routeIs('rooms.index')">
+                        {{ __('Помещения') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('services.index')" :active="request()->routeIs('services.index')">
+                        {{ __('Услуги') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('purchases.index')" :active="request()->routeIs('purchases.index')">
+                        {{ __('Закупки') }}
+                    </x-nav-link>
                     @endrole
                     <x-nav-link :href="route('cars.index')" :active="request()->routeIs('cars.index')">
                         {{ __('Машины') }}

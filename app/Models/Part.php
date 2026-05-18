@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Part extends Model
 {
-    protected $fillable = ['name', 'manufacturer', 'category', 'brand', 'type', 'characteristics', 'condition', 'retail_price'];
+    protected $fillable = ['name', 'manufacturer', 'category', 'brand', 'type', 'characteristics', 'condition', 'retail_price', 'image_path'];
 
     protected $casts = [
         'characteristics' => 'array', //чтобы работать с JSON как с массивом, типо превращаю строку в массив

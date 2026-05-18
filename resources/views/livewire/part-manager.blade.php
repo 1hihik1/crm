@@ -1,11 +1,14 @@
 <?php
 
 use App\Models\Part;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 new class extends Component
 {
+    use WithFileUploads;
     use WithPagination;
 
     public string $search = '';
@@ -14,22 +17,78 @@ new class extends Component
     public ?int $part_id = null;
     public bool $isEditMode = false;
 
-    //правила валидации
-    protected function rules()
+    public $photo = null;
+
+    /** @var array<int, array{key: string, val: string}> */
+    public array $characteristicRows = [];
+
+    protected function rules(): array
     {
         return [
             'name' => 'required|string|max:255',
             'retail_price' => 'required|numeric|min:0',
+            'photo' => 'nullable|image|max:5120',
+            'characteristicRows' => 'array',
+            'characteristicRows.*.key' => 'nullable|string|max:255',
+            'characteristicRows.*.val' => 'nullable|string|max:2000',
         ];
     }
 
-    //сброс пагинации при поиске
-    public function updatingSearch()
+    public function updatingSearch(): void
     {
         $this->resetPage();
     }
 
-    //данные для шаблона с филтрацией
+    public function addCharacteristicRow(): void
+    {
+        $this->characteristicRows[] = ['key' => '', 'val' => ''];
+    }
+
+    public function removeCharacteristicRow(int $index): void
+    {
+        unset($this->characteristicRows[$index]);
+        $this->characteristicRows = array_values($this->characteristicRows);
+        if ($this->characteristicRows === []) {
+            $this->characteristicRows[] = ['key' => '', 'val' => ''];
+        }
+    }
+
+    protected function characteristicsFromRows(): ?array
+    {
+        $out = [];
+        foreach ($this->characteristicRows as $row) {
+            $k = trim($row['key'] ?? '');
+            if ($k === '') {
+                continue;
+            }
+            $out[$k] = trim($row['val'] ?? '');
+        }
+
+        return $out === [] ? null : $out;
+    }
+
+    protected function loadCharacteristicRows(?array $characteristics): void
+    {
+        $this->characteristicRows = [];
+        if (! is_array($characteristics) || $characteristics === []) {
+            $this->characteristicRows[] = ['key' => '', 'val' => ''];
+
+            return;
+        }
+        foreach ($characteristics as $k => $v) {
+            if (! is_string($k)) {
+                continue;
+            }
+            $this->characteristicRows[] = [
+                'key' => $k,
+                'val' => is_scalar($v) ? (string) $v : json_encode($v, JSON_UNESCAPED_UNICODE),
+            ];
+        }
+        if ($this->characteristicRows === []) {
+            $this->characteristicRows[] = ['key' => '', 'val' => ''];
+        }
+    }
+
     public function with(): array
     {
         return [
@@ -39,56 +98,73 @@ new class extends Component
         ];
     }
 
-    // сохранение/обновление
-    public function store()
+    public function store(): void
     {
         $this->validate();
 
-        Part::updateOrCreate(['id' => $this->part_id], [
+        $data = [
             'name' => $this->name,
             'retail_price' => $this->retail_price,
-        ]);
+            'characteristics' => $this->characteristicsFromRows(),
+        ];
 
-        $this->reset(['name', 'retail_price', 'part_id', 'isEditMode']);
+        if ($this->photo) {
+            $path = $this->photo->store('parts', 'public');
+            $existing = $this->part_id ? Part::find($this->part_id) : null;
+            if ($existing?->image_path) {
+                Storage::disk('public')->delete($existing->image_path);
+            }
+            $data['image_path'] = $path;
+        }
+
+        Part::updateOrCreate(['id' => $this->part_id], $data);
+
+        $this->photo = null;
+        $this->reset(['name', 'retail_price', 'part_id', 'isEditMode', 'characteristicRows']);
+        $this->characteristicRows[] = ['key' => '', 'val' => ''];
         session()->flash('message', 'Запчасть успешно сохранена.');
     }
 
-    // редактирование
-    public function edit(int $id)
+    public function edit(int $id): void
     {
         $part = Part::findOrFail($id);
         $this->part_id = $id;
         $this->name = $part->name;
-        $this->retail_price = $part->retail_price;
+        $this->retail_price = (string) $part->retail_price;
+        $this->loadCharacteristicRows($part->characteristics);
+        $this->photo = null;
         $this->isEditMode = true;
     }
 
-    // удаление
-    public function delete(int $id)
+    public function delete(int $id): void
     {
-        Part::findOrFail($id)->delete();
+        $part = Part::findOrFail($id);
+        if ($part->image_path) {
+            Storage::disk('public')->delete($part->image_path);
+        }
+        $part->delete();
         session()->flash('message', 'Запчасть удалена.');
     }
 
-    public function cancel()
+    public function cancel(): void
     {
-        $this->reset(['name', 'retail_price', 'part_id', 'isEditMode']);
+        $this->photo = null;
+        $this->reset(['name', 'retail_price', 'part_id', 'isEditMode', 'characteristicRows']);
+        $this->characteristicRows[] = ['key' => '', 'val' => ''];
     }
 }; ?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <!--оберточка как в Breeze )-->
         <div class="bg-white p-6 shadow sm:rounded-lg">
-            
+
             @if (session()->has('message'))
                 <div class="mb-4 text-green-600 font-medium">
                     {{ session('message') }}
                 </div>
             @endif
 
-            <!-- Формаа -->
-                    @if (!auth()->user()->isClient())
+            @if (!auth()->user()->isClient())
             <div class="mb-8 p-4 bg-gray-50 rounded border">
                 <h3 class="text-lg font-semibold mb-4">{{ $isEditMode ? 'Изменить запчасть' : 'Новая запчасть' }}</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -102,6 +178,31 @@ new class extends Component
                         <x-text-input wire:model="retail_price" type="number" step="0.01" class="w-full mt-1" />
                         <x-input-error :messages="$errors->get('retail_price')" class="mt-1" />
                     </div>
+                    <div class="md:col-span-2">
+                        <x-input-label value="Фото" />
+                        <input type="file" wire:model="photo" accept="image/*" class="mt-1 block w-full text-sm text-gray-600" />
+                        <div wire:loading wire:target="photo" class="text-sm text-gray-500 mt-1">Загрузка…</div>
+                        <x-input-error :messages="$errors->get('photo')" class="mt-1" />
+                        @if ($photo)
+                            <p class="text-xs text-gray-500 mt-1">Предпросмотр: {{ $photo->getClientOriginalName() }}</p>
+                        @endif
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="flex justify-between items-center mb-2">
+                            <x-input-label value="Характеристики (JSON как пары ключ — значение)" />
+                            <x-secondary-button type="button" wire:click="addCharacteristicRow">+ Строка</x-secondary-button>
+                        </div>
+                        <div class="space-y-2 border rounded p-3 bg-white">
+                            @foreach($characteristicRows as $idx => $row)
+                                <div class="flex flex-wrap gap-2 items-start" wire:key="char-{{ $idx }}">
+                                    <x-text-input wire:model="characteristicRows.{{ $idx }}.key" placeholder="Название" class="flex-1 min-w-[120px]" />
+                                    <x-text-input wire:model="characteristicRows.{{ $idx }}.val" placeholder="Значение" class="flex-1 min-w-[120px]" />
+                                    <button type="button" wire:click="removeCharacteristicRow({{ $idx }})" class="text-red-600 text-sm px-2">Удалить</button>
+                                </div>
+                            @endforeach
+                        </div>
+                        <x-input-error :messages="$errors->get('characteristicRows.*.key')" class="mt-1" />
+                    </div>
                 </div>
                 <div class="mt-4 flex gap-2">
                     <x-primary-button wire:click="store">
@@ -114,16 +215,15 @@ new class extends Component
             </div>
         @endif
 
-            <!-- Поиск -->
             <div class="mb-4">
                 <x-text-input wire:model.live="search" placeholder="Поиск по названию..." class="w-full" />
             </div>
 
-            <!-- Таблица -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead>
                         <tr class="bg-gray-100">
+                            <th class="p-2 border w-20">Фото</th>
                             <th class="p-2 border">Название</th>
                             <th class="p-2 border">Цена</th>
                             <th class="p-2 border">Действия</th>
@@ -132,12 +232,19 @@ new class extends Component
                     <tbody>
                         @foreach($parts as $part)
                             <tr>
+                                <td class="p-2 border">
+                                    @if($part->image_path)
+                                        <img src="{{ Storage::url($part->image_path) }}" alt="" class="h-12 w-12 object-cover rounded border" />
+                                    @else
+                                        <span class="text-gray-400 text-xs">—</span>
+                                    @endif
+                                </td>
                                 <td class="p-2 border">{{ $part->name }}</td>
                                 <td class="p-2 border">{{ $part->retail_price }} руб.</td>
                                 <td class="p-2 border">
                                     @if (!auth()->user()->isClient())
-                                        <button wire:click="edit({{ $part->id }})" class="text-indigo-600">Ред.</button>
-                                        <button wire:click="delete({{ $part->id }})" wire:confirm="..." class="text-red-600 ml-2">Удалить</button>
+                                        <button type="button" wire:click="edit({{ $part->id }})" class="text-indigo-600">Ред.</button>
+                                        <button type="button" wire:click="delete({{ $part->id }})" wire:confirm="Удалить запчасть?" class="text-red-600 ml-2">Удалить</button>
                                     @else
                                         <span class="text-gray-400 text-sm">Только просмотр</span>
                                     @endif
