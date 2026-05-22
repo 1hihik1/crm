@@ -11,6 +11,8 @@ use App\Models\StorageLocation;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Livewire\Concerns\ScrollsToCrudForm;
+use App\Livewire\Concerns\WithDeleteConfirmation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Volt\Component;
@@ -18,6 +20,8 @@ use Livewire\WithPagination;
 
 new class extends Component
 {
+    use ScrollsToCrudForm;
+    use WithDeleteConfirmation;
     use WithPagination;
 
     public string $search = '';
@@ -273,6 +277,8 @@ new class extends Component
             $this->itemLines = [$this->emptyItemLine()];
         }
         $this->isEditMode = true;
+        $this->resetValidation();
+        $this->scrollToCrudForm();
     }
 
     public function delete(int $id): void
@@ -306,13 +312,18 @@ new class extends Component
                 </div>
             @endif
 
+            @include('livewire.partials.delete-modal')
+
             @if (!Auth::user()->isClient())
-                <div class="mb-8 p-4 bg-gray-50 rounded border space-y-4">
+                <div id="crud-form" wire:key="purchase-form-{{ $isEditMode ? 'edit-'.$purchase_id : 'new' }}" class="mb-8 p-4 bg-gray-50 rounded border space-y-4 ring-2 {{ $isEditMode ? 'ring-indigo-200' : 'ring-transparent' }}">
                     <h3 class="text-lg font-semibold">{{ $isEditMode ? 'Изменить закупку' : 'Новая закупка' }}</h3>
+                    @if($isEditMode)
+                        <p class="text-sm text-indigo-600">Редактирование закупки #{{ $purchase_id }}</p>
+                    @endif
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <x-input-label value="Поставщик" />
-                            <select wire:model="supplier_id" class="w-full mt-1 rounded-md border-gray-300 shadow-sm">
+                            <select wire:model.live="supplier_id" class="w-full mt-1 rounded-md border-gray-300 shadow-sm">
                                 <option value="">— выберите —</option>
                                 @foreach($suppliers as $s)
                                     <option value="{{ $s->id }}">{{ $s->name }}</option>
@@ -322,7 +333,7 @@ new class extends Component
                         </div>
                         <div>
                             <x-input-label value="Ответственный" />
-                            <select wire:model="user_id" class="w-full mt-1 rounded-md border-gray-300 shadow-sm">
+                            <select wire:model.live="user_id" class="w-full mt-1 rounded-md border-gray-300 shadow-sm">
                                 @foreach($employees as $e)
                                     <option value="{{ $e->id }}">{{ $e->full_name ?? $e->name }} ({{ $e->email }})</option>
                                 @endforeach
@@ -331,7 +342,7 @@ new class extends Component
                         </div>
                         <div>
                             <x-input-label value="Дата закупки" />
-                            <x-text-input wire:model="purchased_at" type="datetime-local" class="w-full mt-1" />
+                            <x-text-input wire:model.live="purchased_at" type="datetime-local" class="w-full mt-1" />
                             <x-input-error :messages="$errors->get('purchased_at')" class="mt-1" />
                         </div>
                         <div>
@@ -345,7 +356,7 @@ new class extends Component
                         </div>
                         <div class="md:col-span-2">
                             <x-input-label value="Комментарий" />
-                            <textarea wire:model="comment" rows="2" class="w-full mt-1 rounded-md border-gray-300 shadow-sm"></textarea>
+                            <textarea wire:model.live="comment" rows="2" class="w-full mt-1 rounded-md border-gray-300 shadow-sm"></textarea>
                             <x-input-error :messages="$errors->get('comment')" class="mt-1" />
                         </div>
                     </div>
@@ -442,7 +453,7 @@ new class extends Component
                                 <td class="p-2 border whitespace-nowrap">
                                     @if (!Auth::user()->isClient())
                                         <button type="button" wire:click="edit({{ $pur->id }})" class="text-indigo-600">Ред.</button>
-                                        <button type="button" wire:click="delete({{ $pur->id }})" wire:confirm="Удалить закупку?" class="text-red-600 ml-2">Удалить</button>
+                                        <button type="button" wire:click="askDelete({{ $pur->id }}, @js('закупку #'.$pur->id))" class="text-red-600 ml-2">Удалить</button>
                                     @endif
                                 </td>
                             </tr>

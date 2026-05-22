@@ -2,13 +2,19 @@
 
 use App\Models\Room;
 use App\Models\Workplace;
+use App\Livewire\Concerns\ScrollsToCrudForm;
+use App\Livewire\Concerns\WithDeleteConfirmation;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 
 new class extends Component
 {
+    use ScrollsToCrudForm;
+    use WithDeleteConfirmation;
     use WithPagination;
+
+    public ?string $deleteKind = null;
 
     public string $room_search = '';
     public string $wp_search = '';
@@ -98,6 +104,35 @@ new class extends Component
         $this->r_area = $room->area !== null ? (string) $room->area : '';
         $this->r_purpose = (string) ($room->purpose ?? '');
         $this->room_edit = true;
+        $this->wp_edit = false;
+        $this->resetValidation();
+        $this->js("document.getElementById('crud-form-room')?.scrollIntoView({behavior: 'smooth', block: 'start'})");
+    }
+
+    public function askDeleteRoom(int $id, string $label): void
+    {
+        $this->deleteKind = 'room';
+        $this->askDelete($id, $label);
+    }
+
+    public function askDeleteWorkplace(int $id, string $label): void
+    {
+        $this->deleteKind = 'workplace';
+        $this->askDelete($id, $label);
+    }
+
+    public function performDelete(): void
+    {
+        if ($this->deleteTargetId === null) {
+            return;
+        }
+        if ($this->deleteKind === 'workplace') {
+            $this->deleteWorkplace($this->deleteTargetId);
+        } else {
+            $this->deleteRoom($this->deleteTargetId);
+        }
+        $this->deleteKind = null;
+        $this->cancelDelete();
     }
 
     public function deleteRoom(int $id): void
@@ -140,6 +175,9 @@ new class extends Component
         $this->wp_room_id = $wp->room_id;
         $this->wp_name = $wp->name;
         $this->wp_edit = true;
+        $this->room_edit = false;
+        $this->resetValidation();
+        $this->js("document.getElementById('crud-form-wp')?.scrollIntoView({behavior: 'smooth', block: 'start'})");
     }
 
     public function deleteWorkplace(int $id): void
@@ -169,32 +207,34 @@ new class extends Component
                 </div>
             @endif
 
+            @include('livewire.partials.delete-modal')
+
             @if (!Auth::user()->isClient())
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     <!-- Помещения -->
                     <div>
                         <h3 class="text-lg font-semibold mb-4">Помещения</h3>
-                        <div class="mb-4 p-4 bg-gray-50 rounded border">
+                        <div id="crud-form-room" wire:key="room-form-{{ $room_edit ? 'edit-'.$room_id : 'new' }}" class="mb-4 p-4 bg-gray-50 rounded border ring-2 {{ $room_edit ? 'ring-indigo-200' : 'ring-transparent' }}">
                             <h4 class="font-medium mb-3">{{ $room_edit ? 'Изменить помещение' : 'Новое помещение' }}</h4>
                             <div class="grid grid-cols-1 gap-3">
                                 <div>
                                     <x-input-label value="Название" />
-                                    <x-text-input wire:model="r_name" class="w-full mt-1" />
+                                    <x-text-input wire:model.live="r_name" class="w-full mt-1" />
                                     <x-input-error :messages="$errors->get('r_name')" class="mt-1" />
                                 </div>
                                 <div>
                                     <x-input-label value="Адрес / ориентир" />
-                                    <x-text-input wire:model="r_address" class="w-full mt-1" />
+                                    <x-text-input wire:model.live="r_address" class="w-full mt-1" />
                                     <x-input-error :messages="$errors->get('r_address')" class="mt-1" />
                                 </div>
                                 <div>
                                     <x-input-label value="Площадь, м²" />
-                                    <x-text-input wire:model="r_area" type="number" step="0.01" class="w-full mt-1" />
+                                    <x-text-input wire:model.live="r_area" type="number" step="0.01" class="w-full mt-1" />
                                     <x-input-error :messages="$errors->get('r_area')" class="mt-1" />
                                 </div>
                                 <div>
                                     <x-input-label value="Назначение" />
-                                    <x-text-input wire:model="r_purpose" class="w-full mt-1" />
+                                    <x-text-input wire:model.live="r_purpose" class="w-full mt-1" />
                                     <x-input-error :messages="$errors->get('r_purpose')" class="mt-1" />
                                 </div>
                             </div>
@@ -224,7 +264,7 @@ new class extends Component
                                             <td class="p-2 border">{{ $room->workplaces_count }}</td>
                                             <td class="p-2 border whitespace-nowrap">
                                                 <button type="button" wire:click="editRoom({{ $room->id }})" class="text-indigo-600">Ред.</button>
-                                                <button type="button" wire:click="deleteRoom({{ $room->id }})" wire:confirm="Удалить помещение и связанные рабочие места?" class="text-red-600 ml-2">Удалить</button>
+                                                <button type="button" wire:click="askDeleteRoom({{ $room->id }}, @js($room->name))" class="text-red-600 ml-2">Удалить</button>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -236,12 +276,12 @@ new class extends Component
                     <!-- Рабочие места -->
                     <div>
                         <h3 class="text-lg font-semibold mb-4">Рабочие места (боксы)</h3>
-                        <div class="mb-4 p-4 bg-gray-50 rounded border">
+                        <div id="crud-form-wp" wire:key="wp-form-{{ $wp_edit ? 'edit-'.$workplace_id : 'new' }}" class="mb-4 p-4 bg-gray-50 rounded border ring-2 {{ $wp_edit ? 'ring-indigo-200' : 'ring-transparent' }}">
                             <h4 class="font-medium mb-3">{{ $wp_edit ? 'Изменить место' : 'Новое рабочее место' }}</h4>
                             <div class="grid grid-cols-1 gap-3">
                                 <div>
                                     <x-input-label value="Помещение" />
-                                    <select wire:model="wp_room_id" class="w-full mt-1 rounded-md border-gray-300 shadow-sm">
+                                    <select wire:model.live="wp_room_id" class="w-full mt-1 rounded-md border-gray-300 shadow-sm">
                                         <option value="">— выберите —</option>
                                         @foreach(\App\Models\Room::orderBy('name')->get() as $r)
                                             <option value="{{ $r->id }}">{{ $r->name }}</option>
@@ -251,7 +291,7 @@ new class extends Component
                                 </div>
                                 <div>
                                     <x-input-label value="Название (например, Бокс №1)" />
-                                    <x-text-input wire:model="wp_name" class="w-full mt-1" />
+                                    <x-text-input wire:model.live="wp_name" class="w-full mt-1" />
                                     <x-input-error :messages="$errors->get('wp_name')" class="mt-1" />
                                 </div>
                             </div>
@@ -279,7 +319,7 @@ new class extends Component
                                             <td class="p-2 border">{{ $wp->room?->name ?? '—' }}</td>
                                             <td class="p-2 border whitespace-nowrap">
                                                 <button type="button" wire:click="editWorkplace({{ $wp->id }})" class="text-indigo-600">Ред.</button>
-                                                <button type="button" wire:click="deleteWorkplace({{ $wp->id }})" wire:confirm="Удалить это рабочее место?" class="text-red-600 ml-2">Удалить</button>
+                                                <button type="button" wire:click="askDeleteWorkplace({{ $wp->id }}, @js($wp->name))" class="text-red-600 ml-2">Удалить</button>
                                             </td>
                                         </tr>
                                     @endforeach

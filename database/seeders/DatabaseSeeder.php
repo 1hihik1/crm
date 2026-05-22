@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
         RoleSeeder::class,
         CarModelSeeder::class,
         InfrastructureSeeder::class,
+        ServiceSeeder::class,
+        PartSeeder::class,
     ]);
 
     //вау это же админ
@@ -64,6 +66,7 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('password')
         ]));
         $client->assignRole('client');
+        $client->update(['balance' => 25000, 'discount' => 5]);
 
         //создание каждому по 2 автомобиля
         \App\Models\Car::create([
@@ -77,5 +80,7 @@ class DatabaseSeeder extends Seeder
             'vin' => 'VIN-' . uniqid(), 'license_plate' => 'В' . rand(100,999) . 'ВВ'
         ]);
     }
+
+    $this->call(OrderSeeder::class);
 }
 }

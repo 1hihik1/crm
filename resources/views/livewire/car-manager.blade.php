@@ -2,19 +2,23 @@
 
 use App\Models\Car;
 use App\Models\User;
+use App\Livewire\Concerns\ScrollsToCrudForm;
+use App\Livewire\Concerns\WithDeleteConfirmation;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 
 new class extends Component
 {
+    use ScrollsToCrudForm;
+    use WithDeleteConfirmation;
     use WithPagination;
 
     public string $search = '';
     public ?int $user_id = null;
     public string $brand = '';
     public string $model = '';
-    public ?int $year = null;
+    public string $year = '';
     public string $vin = '';
     public string $license_plate = '';
     public ?int $car_id = null;
@@ -92,7 +96,7 @@ new class extends Component
             'user_id'       => $this->user_id,
             'brand'         => $this->brand,
             'model'         => $this->model,
-            'year'          => $this->year,
+            'year'          => (int) $this->year,
             'vin'           => $this->vin,
             'license_plate' => $this->license_plate,
         ]);
@@ -109,10 +113,12 @@ new class extends Component
         $this->user_id       = $car->user_id;
         $this->brand         = $car->brand;
         $this->model         = $car->model;
-        $this->year          = $car->year;
+        $this->year          = (string) $car->year;
         $this->vin           = $car->vin;
-        $this->license_plate = $car->license_plate;
+        $this->license_plate = (string) ($car->license_plate ?? '');
         $this->isEditMode    = true;
+        $this->resetValidation();
+        $this->scrollToCrudForm();
     }
 
     //уддаление
@@ -140,14 +146,19 @@ new class extends Component
                 </div>
             @endif
 
+            @include('livewire.partials.delete-modal')
+
             <!-- Форма -->
             @if (!Auth::user()->isClient())
-            <div class="mb-8 p-4 bg-gray-50 rounded border">
+            <div id="crud-form" wire:key="car-form-{{ $isEditMode ? 'edit-'.$car_id : 'new' }}" class="mb-8 p-4 bg-gray-50 rounded border ring-2 {{ $isEditMode ? 'ring-indigo-200' : 'ring-transparent' }}">
                 <h3 class="text-lg font-semibold mb-4">{{ $isEditMode ? 'Изменить автомобиль' : 'Новый автомобиль' }}</h3>
+                @if($isEditMode)
+                    <p class="text-sm text-indigo-600 mb-3">Редактирование #{{ $car_id }}</p>
+                @endif
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <x-input-label value="Владелец" />
-                        <select wire:model="user_id" class="w-full mt-1 rounded border-gray-300">
+                        <select wire:model.live="user_id" class="w-full mt-1 rounded border-gray-300">
                             <option value="">-- Выберите клиента --</option>
                             @foreach($users as $user)
                                 <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
@@ -157,27 +168,27 @@ new class extends Component
                     </div>
                     <div>
                         <x-input-label value="Марка" />
-                        <x-text-input wire:model="brand" class="w-full mt-1" />
+                        <x-text-input wire:model.live="brand" class="w-full mt-1" />
                         <x-input-error :messages="$errors->get('brand')" class="mt-1" />
                     </div>
                     <div>
                         <x-input-label value="Модель" />
-                        <x-text-input wire:model="model" class="w-full mt-1" />
+                        <x-text-input wire:model.live="model" class="w-full mt-1" />
                         <x-input-error :messages="$errors->get('model')" class="mt-1" />
                     </div>
                     <div>
                         <x-input-label value="Год выпуска" />
-                        <x-text-input wire:model="year" type="number" class="w-full mt-1" />
+                        <x-text-input wire:model.live="year" type="number" class="w-full mt-1" />
                         <x-input-error :messages="$errors->get('year')" class="mt-1" />
                     </div>
                     <div>
                         <x-input-label value="VIN" />
-                        <x-text-input wire:model="vin" class="w-full mt-1" />
+                        <x-text-input wire:model.live="vin" class="w-full mt-1" />
                         <x-input-error :messages="$errors->get('vin')" class="mt-1" />
                     </div>
                     <div>
                         <x-input-label value="Госномер" />
-                        <x-text-input wire:model="license_plate" class="w-full mt-1" />
+                        <x-text-input wire:model.live="license_plate" class="w-full mt-1" />
                         <x-input-error :messages="$errors->get('license_plate')" class="mt-1" />
                     </div>
                 </div>
@@ -222,8 +233,8 @@ new class extends Component
                             <td class="p-2 border">{{ $car->license_plate ?? '—' }}</td>
                             <td class="p-2 border">
                                 @if (!Auth::user()->isClient())
-                                    <button wire:click="edit({{ $car->id }})" class="text-indigo-600">Ред.</button>
-                                    <button wire:click="delete({{ $car->id }})" wire:confirm="Вы уверены?" class="text-red-600 ml-2">Удалить</button>
+                                    <button type="button" wire:click="edit({{ $car->id }})" class="text-indigo-600">Ред.</button>
+                                    <button type="button" wire:click="askDelete({{ $car->id }}, @js($car->brand.' '.$car->model))" class="text-red-600 ml-2">Удалить</button>
                                 @else
                                     <span class="text-gray-400 text-sm">Только просмотр</span>
                                 @endif

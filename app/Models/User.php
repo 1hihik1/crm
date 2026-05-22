@@ -6,12 +6,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Traits\HasWallet;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasWallet, Notifiable;
     use HasRoles;
 
     const ROLE_ADMIN = 'аdmin';
@@ -25,7 +26,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'surname', 'name', 'patronymic', 'phone', 'email', 
-        'address', 'discount', 'position', 'salary', 'password',
+        'address', 'discount', 'position', 'salary', 'balance', 'password',
     ];
 
     /**
@@ -48,6 +49,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'balance' => 'decimal:2',
         ];
     }
 
@@ -73,10 +75,21 @@ class User extends Authenticatable
         return $this->hasRole('client');
     }
 
+    public function isManager(): bool
+    {
+        return $this->isEmployee() && str_contains(mb_strtolower((string) $this->position), 'менедж');
+    }
+
+    public function isMechanic(): bool
+    {
+        return $this->isEmployee() && str_contains(mb_strtolower((string) $this->position), 'механ');
+    }
+
+    public function payments() { return $this->hasMany(Payment::class); }
+
     public function cars() { return $this->hasMany(Car::class); }
     public function ordersAsClient() { return $this->hasMany(Order::class, 'user_id'); }
     public function ordersAsEmployee() { return $this->hasMany(Order::class, 'employee_id'); }
-    public function payments() { return $this->hasMany(Payment::class); }
     public function employments() { return $this->hasMany(Employment::class); }
 
 }

@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'АвтоСТО') }} — автосервис</title>
+    <title><?php echo e(config('app.name', 'АвтоСТО')); ?> — автосервис</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700,800&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
     <style>
         body { font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif; }
     </style>
@@ -18,18 +18,18 @@
                 <span class="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 text-sm">СТО</span>
                 <span>Авто<span class="text-amber-400">Мастер</span></span>
             </a>
-            @if (Route::has('login'))
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(Route::has('login')): ?>
                 <nav class="flex items-center gap-3 text-sm">
-                    @auth
-                        <a href="{{ route('dashboard') }}" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-semibold hover:bg-amber-400 transition">Личный кабинет</a>
-                    @else
-                        <a href="{{ route('login') }}" class="px-4 py-2 rounded-lg border border-slate-600 hover:border-amber-500 hover:text-amber-400 transition">Вход</a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-semibold hover:bg-amber-400 transition">Регистрация</a>
-                        @endif
-                    @endauth
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->guard()->check()): ?>
+                        <a href="<?php echo e(route('dashboard')); ?>" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-semibold hover:bg-amber-400 transition">Личный кабинет</a>
+                    <?php else: ?>
+                        <a href="<?php echo e(route('login')); ?>" class="px-4 py-2 rounded-lg border border-slate-600 hover:border-amber-500 hover:text-amber-400 transition">Вход</a>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(Route::has('register')): ?>
+                            <a href="<?php echo e(route('register')); ?>" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-semibold hover:bg-amber-400 transition">Регистрация</a>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </nav>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
     </header>
 
@@ -46,12 +46,12 @@
                     Диагностика, ТО, кузовные работы и оригинальные запчасти. Прозрачные цены, онлайн-запись и контроль статуса ремонта в личном кабинете.
                 </p>
                 <div class="flex flex-wrap gap-4">
-                    @auth
-                        <a href="{{ route('orders.index') }}" class="px-6 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition shadow-lg shadow-amber-500/25">Мои заказы</a>
-                    @else
-                        <a href="{{ route('register') }}" class="px-6 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition shadow-lg shadow-amber-500/25">Записаться онлайн</a>
-                        <a href="{{ route('login') }}" class="px-6 py-3 rounded-xl border border-slate-600 font-semibold hover:border-amber-500 transition">Войти в кабинет</a>
-                    @endauth
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->guard()->check()): ?>
+                        <a href="<?php echo e(route('orders.index')); ?>" class="px-6 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition shadow-lg shadow-amber-500/25">Мои заказы</a>
+                    <?php else: ?>
+                        <a href="<?php echo e(route('register')); ?>" class="px-6 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition shadow-lg shadow-amber-500/25">Записаться онлайн</a>
+                        <a href="<?php echo e(route('login')); ?>" class="px-6 py-3 rounded-xl border border-slate-600 font-semibold hover:border-amber-500 transition">Войти в кабинет</a>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
             </div>
             <div class="hidden lg:block relative">
@@ -75,21 +75,21 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <h2 class="text-3xl font-bold text-white mb-2">Наши услуги</h2>
             <p class="text-slate-400 mb-10">Актуальный прайс из системы учёта</p>
-            @if($services->isEmpty())
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($services->isEmpty()): ?>
                 <p class="text-slate-500">Прайс обновляется. Позвоните для уточнения стоимости.</p>
-            @else
+            <?php else: ?>
                 <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach($services as $service)
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $services; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $service): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                         <article class="rounded-2xl bg-slate-800/80 border border-slate-700 p-6 hover:border-amber-500/50 transition group">
-                            <h3 class="font-bold text-lg text-white group-hover:text-amber-400 transition">{{ $service->name }}</h3>
-                            @if($service->description)
-                                <p class="text-slate-400 text-sm mt-2 line-clamp-3">{{ $service->description }}</p>
-                            @endif
-                            <p class="mt-4 text-2xl font-extrabold text-amber-400">{{ number_format((float) $service->price, 0, '.', ' ') }} ₽</p>
+                            <h3 class="font-bold text-lg text-white group-hover:text-amber-400 transition"><?php echo e($service->name); ?></h3>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($service->description): ?>
+                                <p class="text-slate-400 text-sm mt-2 line-clamp-3"><?php echo e($service->description); ?></p>
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <p class="mt-4 text-2xl font-extrabold text-amber-400"><?php echo e(number_format((float) $service->price, 0, '.', ' ')); ?> ₽</p>
                         </article>
-                    @endforeach
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
     </section>
 
@@ -125,17 +125,18 @@
                     <li>✓ Персональная скидка постоянным клиентам</li>
                     <li>✓ Уведомление о готовности в личном кабинете</li>
                 </ul>
-                @guest
-                    <a href="{{ route('register') }}" class="mt-6 inline-block w-full text-center py-3 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition">
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->guard()->guest()): ?>
+                    <a href="<?php echo e(route('register')); ?>" class="mt-6 inline-block w-full text-center py-3 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition">
                         Создать аккаунт клиента
                     </a>
-                @endguest
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </div>
         </div>
     </section>
 
     <footer class="border-t border-slate-800 py-8 text-center text-slate-500 text-sm">
-        © {{ date('Y') }} АвтоМастер — CRM автосервиса
+        © <?php echo e(date('Y')); ?> АвтоМастер — CRM автосервиса
     </footer>
 </body>
 </html>
+<?php /**PATH C:\Users\1\php_project\crm\resources\views/welcome.blade.php ENDPATH**/ ?>

@@ -1,12 +1,16 @@
 <?php
 
 use App\Models\Service;
+use App\Livewire\Concerns\ScrollsToCrudForm;
+use App\Livewire\Concerns\WithDeleteConfirmation;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 
 new class extends Component
 {
+    use ScrollsToCrudForm;
+    use WithDeleteConfirmation;
     use WithPagination;
 
     public string $search = '';
@@ -70,6 +74,8 @@ new class extends Component
         $this->description = (string) ($s->description ?? '');
         $this->price = (string) $s->price;
         $this->isEditMode = true;
+        $this->resetValidation();
+        $this->scrollToCrudForm();
     }
 
     public function delete(int $id): void
@@ -93,23 +99,28 @@ new class extends Component
                 </div>
             @endif
 
+            @include('livewire.partials.delete-modal')
+
             @if (!Auth::user()->isClient())
-                <div class="mb-8 p-4 bg-gray-50 rounded border">
+                <div id="crud-form" wire:key="service-form-{{ $isEditMode ? 'edit-'.$service_id : 'new' }}" class="mb-8 p-4 bg-gray-50 rounded border ring-2 {{ $isEditMode ? 'ring-indigo-200' : 'ring-transparent' }}">
                     <h3 class="text-lg font-semibold mb-4">{{ $isEditMode ? 'Изменить услугу' : 'Новая услуга' }}</h3>
+                    @if($isEditMode)
+                        <p class="text-sm text-indigo-600 mb-3">Редактирование #{{ $service_id }}</p>
+                    @endif
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="md:col-span-2">
                             <x-input-label value="Название" />
-                            <x-text-input wire:model="name" class="w-full mt-1" />
+                            <x-text-input wire:model.live="name" class="w-full mt-1" />
                             <x-input-error :messages="$errors->get('name')" class="mt-1" />
                         </div>
                         <div class="md:col-span-2">
                             <x-input-label value="Описание" />
-                            <textarea wire:model="description" rows="3" class="w-full mt-1 rounded-md border-gray-300 shadow-sm"></textarea>
+                            <textarea wire:model.live="description" rows="3" class="w-full mt-1 rounded-md border-gray-300 shadow-sm"></textarea>
                             <x-input-error :messages="$errors->get('description')" class="mt-1" />
                         </div>
                         <div>
                             <x-input-label value="Цена, ₽" />
-                            <x-text-input wire:model="price" type="number" step="0.01" class="w-full mt-1" />
+                            <x-text-input wire:model.live="price" type="number" step="0.01" class="w-full mt-1" />
                             <x-input-error :messages="$errors->get('price')" class="mt-1" />
                         </div>
                     </div>
@@ -145,7 +156,7 @@ new class extends Component
                                 <td class="p-2 border">
                                     @if (!Auth::user()->isClient())
                                         <button type="button" wire:click="edit({{ $service->id }})" class="text-indigo-600">Ред.</button>
-                                        <button type="button" wire:click="delete({{ $service->id }})" wire:confirm="Удалить услугу?" class="text-red-600 ml-2">Удалить</button>
+                                        <button type="button" wire:click="askDelete({{ $service->id }}, @js($service->name))" class="text-red-600 ml-2">Удалить</button>
                                     @endif
                                 </td>
                             </tr>

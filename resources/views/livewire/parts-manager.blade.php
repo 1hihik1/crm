@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Part;
+use App\Livewire\Concerns\ScrollsToCrudForm;
+use App\Livewire\Concerns\WithDeleteConfirmation;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
@@ -8,6 +10,8 @@ use Livewire\WithPagination;
 
 new class extends Component
 {
+    use ScrollsToCrudForm;
+    use WithDeleteConfirmation;
     use WithFileUploads;
     use WithPagination;
 
@@ -134,6 +138,8 @@ new class extends Component
         $this->loadCharacteristicRows($part->characteristics);
         $this->photo = null;
         $this->isEditMode = true;
+        $this->resetValidation();
+        $this->scrollToCrudForm();
     }
 
     public function delete(int $id): void
@@ -164,18 +170,23 @@ new class extends Component
                 </div>
             @endif
 
+            @include('livewire.partials.delete-modal')
+
             @if (!auth()->user()->isClient())
-            <div class="mb-8 p-4 bg-gray-50 rounded border">
+            <div id="crud-form" wire:key="part-form-{{ $isEditMode ? 'edit-'.$part_id : 'new' }}" class="mb-8 p-4 bg-gray-50 rounded border ring-2 {{ $isEditMode ? 'ring-indigo-200' : 'ring-transparent' }}">
                 <h3 class="text-lg font-semibold mb-4">{{ $isEditMode ? 'Изменить запчасть' : 'Новая запчасть' }}</h3>
+                @if($isEditMode)
+                    <p class="text-sm text-indigo-600 mb-3">Редактирование #{{ $part_id }} — поля заполнены текущими значениями</p>
+                @endif
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <x-input-label value="Название" />
-                        <x-text-input wire:model="name" class="w-full mt-1" />
+                        <x-text-input wire:model.live="name" class="w-full mt-1" />
                         <x-input-error :messages="$errors->get('name')" class="mt-1" />
                     </div>
                     <div>
                         <x-input-label value="Цена" />
-                        <x-text-input wire:model="retail_price" type="number" step="0.01" class="w-full mt-1" />
+                        <x-text-input wire:model.live="retail_price" type="number" step="0.01" class="w-full mt-1" />
                         <x-input-error :messages="$errors->get('retail_price')" class="mt-1" />
                     </div>
                     <div class="md:col-span-2">
@@ -244,7 +255,7 @@ new class extends Component
                                 <td class="p-2 border">
                                     @if (!auth()->user()->isClient())
                                         <button type="button" wire:click="edit({{ $part->id }})" class="text-indigo-600">Ред.</button>
-                                        <button type="button" wire:click="delete({{ $part->id }})" wire:confirm="Удалить запчасть?" class="text-red-600 ml-2">Удалить</button>
+                                        <button type="button" wire:click="askDelete({{ $part->id }}, @js($part->name))" class="text-red-600 ml-2">Удалить</button>
                                     @else
                                         <span class="text-gray-400 text-sm">Только просмотр</span>
                                     @endif

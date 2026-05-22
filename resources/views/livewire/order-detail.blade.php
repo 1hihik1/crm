@@ -3,20 +3,22 @@
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Part;
+use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\Car;
 use App\Models\Workplace;
 use Livewire\Volt\Component;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 new class extends Component
 {
-    // Текущий заказ (null, если создаем новый)
     public ?Order $order = null;
     public bool $isNew = false;
 
-    // Поля формы заказа (Шапка)
+    // Поля формы заказа
     public ?int $user_id = null;
     public ?int $car_id = null;
     public ?int $workplace_id = null;
@@ -27,12 +29,12 @@ new class extends Component
     public string $status = 'new';
     public float $total_amount = 0;
 
-    // Поля для добавления новой позиции (запчасть или услуга)
+    // Поля для добавления новой позиции
     public string $newItemType = 'part'; // 'part' или 'service'
     public ?int $newItemId = null;
     public int $newItemQty = 1;
 
-    // Данные для выпадающих списков
+    //Выпадающие списки
     public $clients = [];
     public $cars = [];
     public $employees = [];
@@ -42,26 +44,63 @@ new class extends Component
 
     public function mount(string $id)
     {
-        // Загружаем справочники
         $this->clients = User::role('client')->get();
         $this->employees = User::role('employee')->get();
-        $this->cars = []; // изначально машин нет, пока не выбран клиент
+        $this->cars = [];
         $this->workplaces = Workplace::all();
         $this->availableParts = Part::all();
         $this->availableServices = Service::all();
 
         if ($id === 'new') {
             $this->isNew = true;
-            $this->ordered_at = now()->format('Y-m-d\TH:i'); // Текущая дата по умолчанию
-            $this->employee_id = Auth::id(); // По умолчанию ответственный - тот, кто создает
+            $this->ordered_at = now()->format('Y-m-d\TH:i');
+            $this->employee_id = Auth::id();
         } else {
             $this->loadOrder(intval($id));
+            $this->order->load('payments');
+        }
+    }
+
+    public function getPaidAmountProperty(): float
+    {
+        if (! $this->order) {
+            return 0;
+        }
+
+        return (float) $this->order->payments->sum('amount');
+    }
+
+    public function getDueAmountProperty(): float
+    {
+        return max(0, $this->total_amount - $this->paidAmount);
+    }
+
+    protected function assertWorkplaceAvailable(array $validated): void
+    {
+        $workplaceId = $validated['workplace_id'] ?? null;
+        $status = $validated['status'] ?? $this->status;
+
+        if (! $workplaceId || $status !== 'in_progress') {
+            return;
+        }
+
+        $query = Order::where('workplace_id', $workplaceId)
+            ->where('status', 'in_progress');
+
+        if (! $this->isNew && $this->order) {
+            $query->where('id', '!=', $this->order->id);
+        }
+
+        if ($query->exists()) {
+            throw ValidationException::withMessages([
+                'workplace_id' => 'Этот бокс уже занят другим заказом в статусе «В работе».',
+            ]);
         }
     }
 
     public function updatedUserId($value)
     {
-        // Сбрасываем выбранную машину
+        // Сброс выбранной машины
         $this->car_id = null; 
         
         // Загружаем машины только выбранного клиента
@@ -76,7 +115,7 @@ new class extends Component
     // Загрузка существующего заказа
     private function loadOrder(int $id)
     {
-        $this->order = Order::with(['items.part', 'items.service'])->findOrFail($id);
+        $this->order = Order::with(['items.part', 'items.service', 'payments', 'client'])->findOrFail($id);
         $this->isNew = false;
 
         $this->user_id = $this->order->user_id;
@@ -108,6 +147,8 @@ new class extends Component
             'completed_at' => 'nullable|date',
             'status'       => 'required|string',
         ]);
+
+        $this->assertWorkplaceAvailable($validated);
 
         if ($this->isNew) {
             $validated['total_amount'] = 0; // Новый заказ всегда с нулем
@@ -188,6 +229,46 @@ new class extends Component
         $this->newItemId = null;
         $this->newItemQty = 1;
     }
+
+    public function payFromWallet(): void
+    {
+        if (Auth::user()?->isClient() || $this->isNew || ! $this->order) {
+            abort(403);
+        }
+
+        $this->order->load(['payments', 'client']);
+        $due = $this->dueAmount;
+
+        if ($due <= 0) {
+            session()->flash('payment_message', 'Заказ уже полностью оплачен.');
+
+            return;
+        }
+
+        $client = $this->order->client;
+        if (! $client || ! $client->canAfford($due)) {
+            session()->flash('payment_message', 'На балансе клиента недостаточно средств (нужно '.number_format($due, 2, '.', ' ').' ₽).');
+
+            return;
+        }
+
+        DB::transaction(function () use ($client, $due) {
+            if (! $client->withdraw($due)) {
+                throw new \RuntimeException('Не удалось списать средства.');
+            }
+
+            Payment::create([
+                'order_id' => $this->order->id,
+                'user_id' => Auth::id(),
+                'paid_at' => now(),
+                'amount' => $due,
+                'method' => 'wallet',
+            ]);
+        });
+
+        $this->order->load('payments');
+        session()->flash('payment_message', 'Оплата с баланса клиента выполнена: '.number_format($due, 2, '.', ' ').' ₽.');
+    }
 };
 ?>
 
@@ -263,6 +344,18 @@ new class extends Component
                     </div>
 
                     <div>
+                        <x-input-label value="Бокс (рабочее место)" />
+                        <select wire:model="workplace_id" class="w-full mt-1 rounded border-gray-300 text-sm">
+                            <option value="">— не назначен —</option>
+                            @foreach($workplaces as $wp)
+                                <option value="{{ $wp->id }}">{{ $wp->room?->name }} — {{ $wp->name }}</option>
+                            @endforeach
+                        </select>
+                        <x-input-error :messages="$errors->get('workplace_id')" class="mt-1" />
+                        <p class="text-xs text-gray-500 mt-1">При статусе «В работе» бокс не должен быть занят другим заказом.</p>
+                    </div>
+
+                    <div>
                         <x-input-label value="Дата заезда" />
                         <x-text-input wire:model="ordered_at" type="datetime-local" class="w-full mt-1 text-sm" />
                     </div>
@@ -288,12 +381,36 @@ new class extends Component
                     </div>
                 @else
                     <div class="bg-white shadow sm:rounded-lg overflow-hidden">
-                        <div class="p-6 border-b bg-gray-50 flex justify-between items-center">
+                        <div class="p-6 border-b bg-gray-50 flex flex-wrap justify-between items-center gap-4">
                             <h3 class="text-xl font-bold text-gray-800">Состав заказа (Чек)</h3>
-                            <div class="text-2xl font-black text-green-600">
-                                Итого: {{ number_format($total_amount, 2, '.', ' ') }} ₽
+                            <div class="text-right">
+                                <div class="text-2xl font-black text-green-600">
+                                    Итого: {{ number_format($total_amount, 2, '.', ' ') }} ₽
+                                </div>
+                                @if($this->paidAmount > 0)
+                                    <div class="text-sm text-gray-600">Оплачено: {{ number_format($this->paidAmount, 2, '.', ' ') }} ₽</div>
+                                    <div class="text-sm font-semibold text-amber-700">К оплате: {{ number_format($this->dueAmount, 2, '.', ' ') }} ₽</div>
+                                @endif
                             </div>
                         </div>
+
+                        @if (session()->has('payment_message'))
+                            <div class="px-6 py-2 text-sm {{ str_contains(session('payment_message'), 'успеш') ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-900' }}">
+                                {{ session('payment_message') }}
+                            </div>
+                        @endif
+
+                        @if(!Auth::user()?->isClient() && $this->dueAmount > 0 && $order->client)
+                            <div class="px-6 py-3 bg-indigo-50 border-b flex flex-wrap items-center justify-between gap-3">
+                                <div class="text-sm text-indigo-900">
+                                    Баланс клиента <strong>{{ $order->client->full_name ?? $order->client->name }}</strong>:
+                                    {{ number_format($order->client->getBalance(), 2, '.', ' ') }} ₽
+                                </div>
+                                <x-primary-button type="button" wire:click="payFromWallet" wire:confirm="Списать {{ number_format($this->dueAmount, 2, '.', ' ') }} ₽ с баланса клиента?">
+                                    Оплатить с баланса
+                                </x-primary-button>
+                            </div>
+                        @endif
 
                         <!-- Вывод сообщений позиций -->
                         @if (session()->has('item_message'))
