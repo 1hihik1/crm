@@ -192,17 +192,43 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white rounded-lg shadow p-6 overflow-x-auto">
-                        <h3 class="font-bold text-gray-800 mb-3">Сотрудники: завершённые заказы</h3>
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <h3 class="font-bold text-gray-800">Сотрудники и прогресс</h3>
+                            <form method="GET" action="{{ route('dashboard') }}" class="flex flex-wrap gap-2 text-sm">
+                                <select name="position" class="rounded border-gray-300 text-sm" onchange="this.form.submit()">
+                                    <option value="all" @selected(($employeePositionFilter ?? 'all') === 'all')>Все должности</option>
+                                    <option value="manager" @selected(($employeePositionFilter ?? '') === 'manager')>Менеджеры</option>
+                                    <option value="mechanic" @selected(($employeePositionFilter ?? '') === 'mechanic')>Механики</option>
+                                </select>
+                                <select name="sort" class="rounded border-gray-300 text-sm" onchange="this.form.submit()">
+                                    <option value="completed" @selected(($employeeSort ?? 'completed') === 'completed')>По завершённым</option>
+                                    <option value="active" @selected(($employeeSort ?? '') === 'active')>По активным</option>
+                                    <option value="revenue" @selected(($employeeSort ?? '') === 'revenue')>По выручке</option>
+                                    <option value="name" @selected(($employeeSort ?? '') === 'name')>По имени</option>
+                                </select>
+                            </form>
+                        </div>
                         <table class="w-full text-sm text-left">
-                            <thead><tr class="bg-gray-100"><th class="p-2">Сотрудник</th><th class="p-2">Заказов</th></tr></thead>
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="p-2">Сотрудник</th>
+                                    <th class="p-2">Должность</th>
+                                    <th class="p-2 text-center">Активных</th>
+                                    <th class="p-2 text-center">Завершено</th>
+                                    <th class="p-2 text-right">Выручка</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                @forelse($employeeStats ?? [] as $stat)
+                                @forelse($employeeRows ?? [] as $row)
                                     <tr>
-                                        <td class="p-2 border">{{ $stat->employee?->full_name ?? '—' }}</td>
-                                        <td class="p-2 border font-bold">{{ $stat->completed_count }}</td>
+                                        <td class="p-2 border">{{ $row['employee']->full_name }}</td>
+                                        <td class="p-2 border text-gray-600">{{ $row['employee']->position ?? '—' }}</td>
+                                        <td class="p-2 border text-center font-medium">{{ $row['active_count'] }}</td>
+                                        <td class="p-2 border text-center font-bold">{{ $row['completed_count'] }}</td>
+                                        <td class="p-2 border text-right">{{ number_format($row['revenue'], 0, '.', ' ') }} ₽</td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="2" class="p-4 text-gray-500">Нет данных</td></tr>
+                                    <tr><td colspan="5" class="p-4 text-gray-500">Сотрудников нет</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -276,6 +302,8 @@
 
             {{-- КЛИЕНТ --}}
             @if($user->isClient())
+                <livewire:client-order-payments />
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white rounded-lg shadow p-6">
                         <h3 class="font-bold text-gray-800 mb-3">Мои автомобили</h3>
@@ -315,6 +343,7 @@
                                     <th class="p-2">№</th>
                                     <th class="p-2">Дата</th>
                                     <th class="p-2">Статус</th>
+                                    <th class="p-2">Оплата</th>
                                     <th class="p-2">Сумма</th>
                                 </tr>
                             </thead>
@@ -324,10 +353,11 @@
                                         <td class="p-2 border"><a href="{{ route('orders.detail', $order->id) }}" class="text-indigo-600">#{{ $order->id }}</a></td>
                                         <td class="p-2 border">{{ $order->ordered_at?->format('d.m.Y') }}</td>
                                         <td class="p-2 border">{{ $statusLabels[$order->status] ?? $order->status }}</td>
+                                        <td class="p-2 border">{{ \App\Models\Order::paymentStatusLabel($order->payment_status) }}</td>
                                         <td class="p-2 border">{{ number_format($order->total_amount, 2) }} ₽</td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="4" class="p-4 text-gray-500">Заказов пока нет</td></tr>
+                                    <tr><td colspan="5" class="p-4 text-gray-500">Заказов пока нет</td></tr>
                                 @endforelse
                             </tbody>
                         </table>

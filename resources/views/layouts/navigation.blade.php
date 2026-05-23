@@ -19,9 +19,6 @@
                     <x-nav-link :href="route('parts.index')" :active="request()->routeIs('parts.index')">
                         {{ __('Запчасти') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('rooms.index')" :active="request()->routeIs('rooms.index')">
-                        {{ __('Помещения') }}
-                    </x-nav-link>
                     <x-nav-link :href="route('services.index')" :active="request()->routeIs('services.index')">
                         {{ __('Услуги') }}
                     </x-nav-link>
@@ -30,6 +27,9 @@
                     </x-nav-link>
                     @endrole
                     @role('admin')
+                    <x-nav-link :href="route('rooms.index')" :active="request()->routeIs('rooms.index')">
+                        {{ __('Помещения') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
                         {{ __('Пользователи') }}
                     </x-nav-link>

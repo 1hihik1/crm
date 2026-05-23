@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\Car;
 use App\Models\Workplace;
+use App\Livewire\Concerns\WithPaymentConfirmation;
 use Livewire\Volt\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,8 @@ use Illuminate\Validation\ValidationException;
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+        <?php echo $__env->make('livewire.partials.payment-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         
         <div class="mb-4 flex items-center justify-between">
             <a href="<?php echo e(route('orders.index')); ?>" class="text-indigo-600 hover:text-indigo-900 font-medium">
@@ -379,13 +382,24 @@ use Illuminate\Validation\ValidationException;
                     <div class="bg-white shadow sm:rounded-lg overflow-hidden">
                         <div class="p-6 border-b bg-gray-50 flex flex-wrap justify-between items-center gap-4">
                             <h3 class="text-xl font-bold text-gray-800">Состав заказа (Чек)</h3>
-                            <div class="text-right">
+                            <div class="text-right text-sm space-y-1">
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($subtotal_amount > 0 && $discount_amount > 0): ?>
+                                    <div class="text-gray-600">Подытог: <?php echo e(number_format($subtotal_amount, 2, '.', ' ')); ?> ₽</div>
+                                    <div class="text-indigo-600">Скидка <?php echo e($discount_percent); ?>%: −<?php echo e(number_format($discount_amount, 2, '.', ' ')); ?> ₽</div>
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 <div class="text-2xl font-black text-green-600">
                                     Итого: <?php echo e(number_format($total_amount, 2, '.', ' ')); ?> ₽
                                 </div>
+                                <?php $payStatus = $order->payment_status; ?>
+                                <div class="text-xs font-semibold <?php echo e($payStatus === 'paid' ? 'text-green-700' : ($payStatus === 'partial' ? 'text-amber-700' : 'text-red-700')); ?>">
+                                    <?php echo e(\App\Models\Order::paymentStatusLabel($payStatus)); ?>
+
+                                </div>
                                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->paidAmount > 0): ?>
-                                    <div class="text-sm text-gray-600">Оплачено: <?php echo e(number_format($this->paidAmount, 2, '.', ' ')); ?> ₽</div>
-                                    <div class="text-sm font-semibold text-amber-700">К оплате: <?php echo e(number_format($this->dueAmount, 2, '.', ' ')); ?> ₽</div>
+                                    <div class="text-gray-600">Оплачено: <?php echo e(number_format($this->paidAmount, 2, '.', ' ')); ?> ₽</div>
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->dueAmount > 0): ?>
+                                    <div class="font-semibold text-amber-700">К оплате: <?php echo e(number_format($this->dueAmount, 2, '.', ' ')); ?> ₽</div>
                                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </div>
                         </div>
@@ -397,25 +411,24 @@ use Illuminate\Validation\ValidationException;
                             </div>
                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!Auth::user()?->isClient() && $this->dueAmount > 0 && $order->client): ?>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(Auth::user()?->isClient() && $this->dueAmount > 0): ?>
                             <div class="px-6 py-3 bg-indigo-50 border-b flex flex-wrap items-center justify-between gap-3">
                                 <div class="text-sm text-indigo-900">
-                                    Баланс клиента <strong><?php echo e($order->client->full_name ?? $order->client->name); ?></strong>:
-                                    <?php echo e(number_format($order->client->getBalance(), 2, '.', ' ')); ?> ₽
+                                    Ваш баланс: <strong><?php echo e(number_format(Auth::user()->getBalance(), 2, '.', ' ')); ?> ₽</strong>
                                 </div>
                                 <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['type' => 'button','wire:click' => 'payFromWallet','wire:confirm' => 'Списать '.e(number_format($this->dueAmount, 2, '.', ' ')).' ₽ с баланса клиента?']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => ['type' => 'button','wire:click' => 'askPayCurrentOrder('.e($this->dueAmount).', @js(\'заказ #\'.$order->id))']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('primary-button'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['type' => 'button','wire:click' => 'payFromWallet','wire:confirm' => 'Списать '.e(number_format($this->dueAmount, 2, '.', ' ')).' ₽ с баланса клиента?']); ?>
+<?php $component->withAttributes(['type' => 'button','wire:click' => 'askPayCurrentOrder('.e($this->dueAmount).', @js(\'заказ #\'.$order->id))']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
-                                    Оплатить с баланса
+                                    Оплатить заказ
                                  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginald411d1792bd6cc877d687758b753742c)): ?>

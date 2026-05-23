@@ -741,7 +741,7 @@ use Livewire\WithPagination;
                                 <td class="p-2 border"><?php echo e($roles[$u->roles->first()?->name ?? ''] ?? '—'); ?></td>
                                 <td class="p-2 border"><?php echo e($u->position ?? '—'); ?></td>
                                 <td class="p-2 border"><?php echo e($u->discount); ?>%</td>
-                                <td class="p-2 border"><?php echo e(number_format((float) $u->balance, 2, '.', ' ')); ?> ₽</td>
+                                <td class="p-2 border"><?php echo e($u->hasRole('client') ? number_format($u->getBalance(), 2, '.', ' ') : '—'); ?> ₽</td>
                                 <td class="p-2 border whitespace-nowrap">
                                     <button type="button" wire:click="edit(<?php echo e($u->id); ?>)" class="text-indigo-600">Ред.</button>
                                     <button type="button" wire:click="askDelete(<?php echo e($u->id); ?>, <?php echo \Illuminate\Support\Js::from($u->full_name)->toHtml() ?>)" class="text-red-600 ml-2">Удалить</button>

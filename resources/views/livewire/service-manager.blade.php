@@ -13,6 +13,13 @@ new class extends Component
     use WithDeleteConfirmation;
     use WithPagination;
 
+    public function canManage(): bool
+    {
+        $user = Auth::user();
+
+        return $user && ($user->isAdmin() || $user->isManager());
+    }
+
     public string $search = '';
     public string $name = '';
     public string $description = '';
@@ -51,6 +58,10 @@ new class extends Component
 
     public function store(): void
     {
+        if (! $this->canManage()) {
+            abort(403);
+        }
+
         $this->validate();
 
         Service::updateOrCreate(
@@ -80,6 +91,10 @@ new class extends Component
 
     public function delete(int $id): void
     {
+        if (! $this->canManage()) {
+            abort(403);
+        }
+
         Service::findOrFail($id)->delete();
         session()->flash('message', 'Услуга удалена.');
     }
@@ -101,7 +116,7 @@ new class extends Component
 
             @include('livewire.partials.delete-modal')
 
-            @if (!Auth::user()->isClient())
+            @if ($this->canManage())
                 <div id="crud-form" wire:key="service-form-{{ $isEditMode ? 'edit-'.$service_id : 'new' }}" class="mb-8 p-4 bg-gray-50 rounded border ring-2 {{ $isEditMode ? 'ring-indigo-200' : 'ring-transparent' }}">
                     <h3 class="text-lg font-semibold mb-4">{{ $isEditMode ? 'Изменить услугу' : 'Новая услуга' }}</h3>
                     @if($isEditMode)
@@ -154,9 +169,11 @@ new class extends Component
                                 <td class="p-2 border text-sm text-gray-600 max-w-md truncate">{{ $service->description ?? '—' }}</td>
                                 <td class="p-2 border">{{ number_format((float) $service->price, 2, '.', ' ') }} ₽</td>
                                 <td class="p-2 border">
-                                    @if (!Auth::user()->isClient())
+                                    @if ($this->canManage())
                                         <button type="button" wire:click="edit({{ $service->id }})" class="text-indigo-600">Ред.</button>
                                         <button type="button" wire:click="askDelete({{ $service->id }}, @js($service->name))" class="text-red-600 ml-2">Удалить</button>
+                                    @else
+                                        <span class="text-gray-400 text-sm">Только просмотр</span>
                                     @endif
                                 </td>
                             </tr>

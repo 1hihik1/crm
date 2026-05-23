@@ -53,14 +53,7 @@ new class extends Component
 
         return [
             'orders' => $query->latest('ordered_at')->paginate(10),
-            // Массив статусов для красивого вывода и фильтров
-            'statuses' => [
-                'new' => ['label' => 'Новый', 'color' => 'bg-blue-100 text-blue-800'],
-                'in_progress' => ['label' => 'В работе', 'color' => 'bg-yellow-100 text-yellow-800'],
-                'ready' => ['label' => 'Готов', 'color' => 'bg-purple-100 text-purple-800'],
-                'completed' => ['label' => 'Завершен', 'color' => 'bg-green-100 text-green-800'],
-                'cancelled' => ['label' => 'Отменен', 'color' => 'bg-red-100 text-red-800'],
-            ],
+            'statuses' => Order::statusLabels(),
         ];
     }
 

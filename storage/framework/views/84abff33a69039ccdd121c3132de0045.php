@@ -203,17 +203,43 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white rounded-lg shadow p-6 overflow-x-auto">
-                        <h3 class="font-bold text-gray-800 mb-3">Сотрудники: завершённые заказы</h3>
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <h3 class="font-bold text-gray-800">Сотрудники и прогресс</h3>
+                            <form method="GET" action="<?php echo e(route('dashboard')); ?>" class="flex flex-wrap gap-2 text-sm">
+                                <select name="position" class="rounded border-gray-300 text-sm" onchange="this.form.submit()">
+                                    <option value="all" <?php if(($employeePositionFilter ?? 'all') === 'all'): echo 'selected'; endif; ?>>Все должности</option>
+                                    <option value="manager" <?php if(($employeePositionFilter ?? '') === 'manager'): echo 'selected'; endif; ?>>Менеджеры</option>
+                                    <option value="mechanic" <?php if(($employeePositionFilter ?? '') === 'mechanic'): echo 'selected'; endif; ?>>Механики</option>
+                                </select>
+                                <select name="sort" class="rounded border-gray-300 text-sm" onchange="this.form.submit()">
+                                    <option value="completed" <?php if(($employeeSort ?? 'completed') === 'completed'): echo 'selected'; endif; ?>>По завершённым</option>
+                                    <option value="active" <?php if(($employeeSort ?? '') === 'active'): echo 'selected'; endif; ?>>По активным</option>
+                                    <option value="revenue" <?php if(($employeeSort ?? '') === 'revenue'): echo 'selected'; endif; ?>>По выручке</option>
+                                    <option value="name" <?php if(($employeeSort ?? '') === 'name'): echo 'selected'; endif; ?>>По имени</option>
+                                </select>
+                            </form>
+                        </div>
                         <table class="w-full text-sm text-left">
-                            <thead><tr class="bg-gray-100"><th class="p-2">Сотрудник</th><th class="p-2">Заказов</th></tr></thead>
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="p-2">Сотрудник</th>
+                                    <th class="p-2">Должность</th>
+                                    <th class="p-2 text-center">Активных</th>
+                                    <th class="p-2 text-center">Завершено</th>
+                                    <th class="p-2 text-right">Выручка</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $employeeStats ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $employeeRows ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                     <tr>
-                                        <td class="p-2 border"><?php echo e($stat->employee?->full_name ?? '—'); ?></td>
-                                        <td class="p-2 border font-bold"><?php echo e($stat->completed_count); ?></td>
+                                        <td class="p-2 border"><?php echo e($row['employee']->full_name); ?></td>
+                                        <td class="p-2 border text-gray-600"><?php echo e($row['employee']->position ?? '—'); ?></td>
+                                        <td class="p-2 border text-center font-medium"><?php echo e($row['active_count']); ?></td>
+                                        <td class="p-2 border text-center font-bold"><?php echo e($row['completed_count']); ?></td>
+                                        <td class="p-2 border text-right"><?php echo e(number_format($row['revenue'], 0, '.', ' ')); ?> ₽</td>
                                     </tr>
                                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
-                                    <tr><td colspan="2" class="p-4 text-gray-500">Нет данных</td></tr>
+                                    <tr><td colspan="5" class="p-4 text-gray-500">Сотрудников нет</td></tr>
                                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </tbody>
                         </table>
@@ -289,6 +315,33 @@
 
             
             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($user->isClient()): ?>
+                <?php
+$__split = function ($name, $params = []) {
+    return [$name, $params];
+};
+[$__name, $__params] = $__split('client-order-payments', []);
+
+$__keyOuter = $__key ?? null;
+
+$__key = null;
+$__componentSlots = [];
+
+$__key ??= \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::generateKey('lw-1411450695-0', $__key);
+
+$__html = app('livewire')->mount($__name, $__params, $__key, $__componentSlots);
+
+echo $__html;
+
+unset($__html);
+unset($__key);
+$__key = $__keyOuter;
+unset($__keyOuter);
+unset($__name);
+unset($__params);
+unset($__componentSlots);
+unset($__split);
+?>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white rounded-lg shadow p-6">
                         <h3 class="font-bold text-gray-800 mb-3">Мои автомобили</h3>
@@ -328,6 +381,7 @@
                                     <th class="p-2">№</th>
                                     <th class="p-2">Дата</th>
                                     <th class="p-2">Статус</th>
+                                    <th class="p-2">Оплата</th>
                                     <th class="p-2">Сумма</th>
                                 </tr>
                             </thead>
@@ -337,10 +391,11 @@
                                         <td class="p-2 border"><a href="<?php echo e(route('orders.detail', $order->id)); ?>" class="text-indigo-600">#<?php echo e($order->id); ?></a></td>
                                         <td class="p-2 border"><?php echo e($order->ordered_at?->format('d.m.Y')); ?></td>
                                         <td class="p-2 border"><?php echo e($statusLabels[$order->status] ?? $order->status); ?></td>
+                                        <td class="p-2 border"><?php echo e(\App\Models\Order::paymentStatusLabel($order->payment_status)); ?></td>
                                         <td class="p-2 border"><?php echo e(number_format($order->total_amount, 2)); ?> ₽</td>
                                     </tr>
                                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
-                                    <tr><td colspan="4" class="p-4 text-gray-500">Заказов пока нет</td></tr>
+                                    <tr><td colspan="5" class="p-4 text-gray-500">Заказов пока нет</td></tr>
                                 <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </tbody>
                         </table>

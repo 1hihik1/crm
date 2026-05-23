@@ -14,7 +14,6 @@ use App\Models\Workplace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 
 class DashboardController extends Controller
 {
@@ -33,14 +32,13 @@ class DashboardController extends Controller
 
         if ($user->isEmployee()) {
             if ($user->isManager()) {
-                $data = array_merge($data, $this->managerData());
+                $data = array_merge($data, $this->managerData($request));
             }
             if ($user->isMechanic()) {
                 $data = array_merge($data, $this->mechanicData($user));
             }
-            // Сотрудник без явной должности — показываем сводку менеджера
             if (! $user->isManager() && ! $user->isMechanic()) {
-                $data = array_merge($data, $this->managerData());
+                $data = array_merge($data, $this->managerData($request));
             }
         }
 
@@ -49,13 +47,6 @@ class DashboardController extends Controller
 
     protected function adminData(): array
     {
-        $logPath = storage_path('logs/laravel.log');
-        $logTail = [];
-        if (File::exists($logPath)) {
-            $lines = @file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-            $logTail = array_slice($lines, -8);
-        }
-
         $now = now();
 
         $ordersByStatus = Order::query()
@@ -70,7 +61,6 @@ class DashboardController extends Controller
             ->count();
 
         return [
-            'logTail' => $logTail,
             'usersCount' => User::count(),
             'clientsCount' => User::role('client')->count(),
             'employeesCount' => User::role('employee')->count(),
@@ -96,7 +86,7 @@ class DashboardController extends Controller
 
     protected function clientData(User $user): array
     {
-        $orders = Order::with(['car', 'workplace'])
+        $orders = Order::with(['car', 'workplace', 'payments'])
             ->where('user_id', $user->id)
             ->latest('ordered_at')
             ->get();
@@ -108,7 +98,7 @@ class DashboardController extends Controller
         ];
     }
 
-    protected function managerData(): array
+    protected function managerData(Request $request): array
     {
         $now = now();
 
@@ -131,14 +121,51 @@ class DashboardController extends Controller
                 'order' => $wp->orders->first(),
             ]);
 
-        $employeeStats = Order::query()
+        $completedStats = Order::query()
             ->where('status', 'completed')
             ->whereNotNull('employee_id')
-            ->select('employee_id', DB::raw('count(*) as completed_count'))
+            ->select('employee_id', DB::raw('count(*) as completed_count'), DB::raw('sum(total_amount) as revenue'))
             ->groupBy('employee_id')
-            ->orderByDesc('completed_count')
-            ->with('employee')
-            ->get();
+            ->get()
+            ->keyBy('employee_id');
+
+        $activeStats = Order::query()
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->whereNotNull('employee_id')
+            ->select('employee_id', DB::raw('count(*) as active_count'))
+            ->groupBy('employee_id')
+            ->pluck('active_count', 'employee_id');
+
+        $positionFilter = $request->query('position', 'all');
+        $sortBy = $request->query('sort', 'completed');
+
+        $employees = User::role('employee')->get();
+
+        if ($positionFilter === 'manager') {
+            $employees = $employees->filter(fn (User $u) => $u->isManager());
+        } elseif ($positionFilter === 'mechanic') {
+            $employees = $employees->filter(fn (User $u) => $u->isMechanic());
+        }
+
+        $employeeRows = $employees->map(function (User $emp) use ($completedStats, $activeStats) {
+            $stat = $completedStats->get($emp->id);
+
+            return [
+                'employee' => $emp,
+                'completed_count' => (int) ($stat->completed_count ?? 0),
+                'revenue' => (float) ($stat->revenue ?? 0),
+                'active_count' => (int) ($activeStats[$emp->id] ?? 0),
+            ];
+        });
+
+        $employeeRows = match ($sortBy) {
+            'name' => $employeeRows->sortBy(fn ($r) => $r['employee']->full_name),
+            'active' => $employeeRows->sortByDesc('active_count'),
+            'revenue' => $employeeRows->sortByDesc('revenue'),
+            default => $employeeRows->sortByDesc('completed_count'),
+        };
+
+        $employeeRows = $employeeRows->values();
 
         $lowStockParts = Part::query()
             ->withSum('stock as stock_qty', 'quantity')
@@ -154,7 +181,9 @@ class DashboardController extends Controller
             'revenueMonth' => $revenueMonth,
             'ordersByStatus' => $ordersByStatus,
             'workplaceOccupancy' => $workplaceOccupancy,
-            'employeeStats' => $employeeStats,
+            'employeeRows' => $employeeRows,
+            'employeeSort' => $sortBy,
+            'employeePositionFilter' => $positionFilter,
             'lowStockParts' => $lowStockParts,
             'totalOrders' => Order::count(),
         ];

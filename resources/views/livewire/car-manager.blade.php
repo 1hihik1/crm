@@ -14,6 +14,13 @@ new class extends Component
     use WithDeleteConfirmation;
     use WithPagination;
 
+    public function canManageCars(): bool
+    {
+        $user = Auth::user();
+
+        return $user && ($user->isAdmin() || $user->isManager());
+    }
+
     public string $search = '';
     public ?int $user_id = null;
     public string $brand = '';
@@ -68,9 +75,12 @@ new class extends Component
     {
         $query = Car::query();
 
-        // БЕЗОПАСНОСТЬ: Если это клиент, жестко фильтруем только его машины
         if (Auth::user()?->isClient()) {
             $query->where('user_id', Auth::id());
+        }
+
+        if (Auth::user()?->isMechanic()) {
+            $query->whereHas('orders', fn ($q) => $q->where('employee_id', Auth::id()));
         }
 
         return [
@@ -90,6 +100,10 @@ new class extends Component
     // Сохранение / Обновление
     public function store()
     {
+        if (! $this->canManageCars()) {
+            abort(403);
+        }
+
         $this->validate();
 
         Car::updateOrCreate(['id' => $this->car_id], [
@@ -124,6 +138,10 @@ new class extends Component
     //уддаление
     public function delete(int $id)
     {
+        if (! $this->canManageCars()) {
+            abort(403);
+        }
+
         Car::findOrFail($id)->delete();
         session()->flash('message', 'Автомобиль удалён.');
     }
@@ -149,7 +167,7 @@ new class extends Component
             @include('livewire.partials.delete-modal')
 
             <!-- Форма -->
-            @if (!Auth::user()->isClient())
+            @if ($this->canManageCars())
             <div id="crud-form" wire:key="car-form-{{ $isEditMode ? 'edit-'.$car_id : 'new' }}" class="mb-8 p-4 bg-gray-50 rounded border ring-2 {{ $isEditMode ? 'ring-indigo-200' : 'ring-transparent' }}">
                 <h3 class="text-lg font-semibold mb-4">{{ $isEditMode ? 'Изменить автомобиль' : 'Новый автомобиль' }}</h3>
                 @if($isEditMode)
@@ -232,7 +250,7 @@ new class extends Component
                             <td class="p-2 border">{{ $car->vin }}</td>
                             <td class="p-2 border">{{ $car->license_plate ?? '—' }}</td>
                             <td class="p-2 border">
-                                @if (!Auth::user()->isClient())
+                                @if ($this->canManageCars())
                                     <button type="button" wire:click="edit({{ $car->id }})" class="text-indigo-600">Ред.</button>
                                     <button type="button" wire:click="askDelete({{ $car->id }}, @js($car->brand.' '.$car->model))" class="text-red-600 ml-2">Удалить</button>
                                 @else
