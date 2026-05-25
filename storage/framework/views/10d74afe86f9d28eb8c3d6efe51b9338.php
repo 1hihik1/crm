@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Order;
+use App\Livewire\Concerns\WithCompleteOrderConfirmation;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+        <?php echo $__env->make('livewire.partials.complete-order-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         
         <!-- Шапка: Заголовок и кнопка создания -->
         <div class="flex justify-between items-center mb-6">
@@ -115,21 +118,24 @@ use Illuminate\Support\Facades\Auth;
                                             <!-- Если новый -> В работу -->
                                             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($order->status === 'new'): ?>
                                                 <button wire:click="changeStatus(<?php echo e($order->id); ?>, 'in_progress')" class="text-yellow-600 hover:text-yellow-900 font-bold" title="Взять в работу">
-                                                    ▶ В работу
+                                                    В работу
                                                 </button>
                                             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                                             <!-- Если в работе -> Готов -->
                                             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($order->status === 'in_progress'): ?>
                                                 <button wire:click="changeStatus(<?php echo e($order->id); ?>, 'ready')" class="text-purple-600 hover:text-purple-900 font-bold" title="Отметить готовым">
-                                                    ★ Готов
+                                                    Готов
                                                 </button>
                                             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                                             <!-- Если готов -> Завершить (выдать клиенту) -->
                                             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($order->status === 'ready'): ?>
-                                                <button wire:click="changeStatus(<?php echo e($order->id); ?>, 'completed')" wire:confirm="Завершить заказ и передать авто клиенту?" class="text-green-600 hover:text-green-900 font-bold" title="Завершить заказ">
-                                                    ✔ Завершить
+                                                <button type="button"
+                                                        wire:click="askCompleteOrder(<?php echo e($order->id); ?>, <?php echo \Illuminate\Support\Js::from('заказ #'.$order->id)->toHtml() ?>)"
+                                                        class="text-green-600 hover:text-green-900 font-bold"
+                                                        title="Завершить заказ">
+                                                    Завершить
                                                 </button>
                                             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                             

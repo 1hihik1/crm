@@ -1,12 +1,14 @@
 <?php
 
 use App\Models\Order;
+use App\Livewire\Concerns\WithCompleteOrderConfirmation;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 
 new class extends Component
 {
+    use WithCompleteOrderConfirmation;
     use WithPagination;
 
     public string $search = '';
@@ -89,6 +91,8 @@ new class extends Component
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+        @include('livewire.partials.complete-order-modal')
         
         <!-- Шапка: Заголовок и кнопка создания -->
         <div class="flex justify-between items-center mb-6">
@@ -193,21 +197,24 @@ new class extends Component
                                             <!-- Если новый -> В работу -->
                                             @if($order->status === 'new')
                                                 <button wire:click="changeStatus({{ $order->id }}, 'in_progress')" class="text-yellow-600 hover:text-yellow-900 font-bold" title="Взять в работу">
-                                                    ▶ В работу
+                                                    В работу
                                                 </button>
                                             @endif
 
                                             <!-- Если в работе -> Готов -->
                                             @if($order->status === 'in_progress')
                                                 <button wire:click="changeStatus({{ $order->id }}, 'ready')" class="text-purple-600 hover:text-purple-900 font-bold" title="Отметить готовым">
-                                                    ★ Готов
+                                                    Готов
                                                 </button>
                                             @endif
 
                                             <!-- Если готов -> Завершить (выдать клиенту) -->
                                             @if($order->status === 'ready')
-                                                <button wire:click="changeStatus({{ $order->id }}, 'completed')" wire:confirm="Завершить заказ и передать авто клиенту?" class="text-green-600 hover:text-green-900 font-bold" title="Завершить заказ">
-                                                    ✔ Завершить
+                                                <button type="button"
+                                                        wire:click="askCompleteOrder({{ $order->id }}, @js('заказ #'.$order->id))"
+                                                        class="text-green-600 hover:text-green-900 font-bold"
+                                                        title="Завершить заказ">
+                                                    Завершить
                                                 </button>
                                             @endif
                                             

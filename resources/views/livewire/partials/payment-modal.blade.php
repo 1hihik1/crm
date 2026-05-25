@@ -1,4 +1,4 @@
-﻿@if($showPaymentModal)
+@if($showPaymentModal)
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" wire:click="cancelPayment"></div>
         <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-indigo-100">
