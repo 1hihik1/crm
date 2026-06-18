@@ -2,6 +2,8 @@
 
 use App\Models\Room;
 use App\Models\Workplace;
+use App\Livewire\Concerns\ScrollsToCrudForm;
+use App\Livewire\Concerns\WithDeleteConfirmation;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -18,12 +20,14 @@ use Illuminate\Support\Facades\Auth;
                 </div>
             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
+            <?php echo $__env->make('livewire.partials.delete-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!Auth::user()->isClient()): ?>
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     <!-- Помещения -->
                     <div>
                         <h3 class="text-lg font-semibold mb-4">Помещения</h3>
-                        <div class="mb-4 p-4 bg-gray-50 rounded border">
+                        <div id="crud-form-room" <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::$currentLoop['key'] = 'room-form-'.e($room_edit ? 'edit-'.$room_id : 'new').''; ?>wire:key="room-form-<?php echo e($room_edit ? 'edit-'.$room_id : 'new'); ?>" class="mb-4 p-4 bg-gray-50 rounded border ring-2 <?php echo e($room_edit ? 'ring-indigo-200' : 'ring-transparent'); ?>">
                             <h4 class="font-medium mb-3"><?php echo e($room_edit ? 'Изменить помещение' : 'Новое помещение'); ?></h4>
                             <div class="grid grid-cols-1 gap-3">
                                 <div>
@@ -51,14 +55,14 @@ use Illuminate\Support\Facades\Auth;
 <?php endif; ?>
                                     <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model' => 'r_name','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model.live' => 'r_name','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['wire:model' => 'r_name','class' => 'w-full mt-1']); ?>
+<?php $component->withAttributes(['wire:model.live' => 'r_name','class' => 'w-full mt-1']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
 <?php echo $__env->renderComponent(); ?>
@@ -119,14 +123,14 @@ use Illuminate\Support\Facades\Auth;
 <?php endif; ?>
                                     <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model' => 'r_address','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model.live' => 'r_address','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['wire:model' => 'r_address','class' => 'w-full mt-1']); ?>
+<?php $component->withAttributes(['wire:model.live' => 'r_address','class' => 'w-full mt-1']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
 <?php echo $__env->renderComponent(); ?>
@@ -187,14 +191,14 @@ use Illuminate\Support\Facades\Auth;
 <?php endif; ?>
                                     <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model' => 'r_area','type' => 'number','step' => '0.01','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model.live' => 'r_area','type' => 'number','step' => '0.01','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['wire:model' => 'r_area','type' => 'number','step' => '0.01','class' => 'w-full mt-1']); ?>
+<?php $component->withAttributes(['wire:model.live' => 'r_area','type' => 'number','step' => '0.01','class' => 'w-full mt-1']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
 <?php echo $__env->renderComponent(); ?>
@@ -255,14 +259,14 @@ use Illuminate\Support\Facades\Auth;
 <?php endif; ?>
                                     <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model' => 'r_purpose','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model.live' => 'r_purpose','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['wire:model' => 'r_purpose','class' => 'w-full mt-1']); ?>
+<?php $component->withAttributes(['wire:model.live' => 'r_purpose','class' => 'w-full mt-1']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
 <?php echo $__env->renderComponent(); ?>
@@ -386,7 +390,7 @@ use Illuminate\Support\Facades\Auth;
                                             <td class="p-2 border"><?php echo e($room->workplaces_count); ?></td>
                                             <td class="p-2 border whitespace-nowrap">
                                                 <button type="button" wire:click="editRoom(<?php echo e($room->id); ?>)" class="text-indigo-600">Ред.</button>
-                                                <button type="button" wire:click="deleteRoom(<?php echo e($room->id); ?>)" wire:confirm="Удалить помещение и связанные рабочие места?" class="text-red-600 ml-2">Удалить</button>
+                                                <button type="button" wire:click="askDeleteRoom(<?php echo e($room->id); ?>, <?php echo \Illuminate\Support\Js::from($room->name)->toHtml() ?>)" class="text-red-600 ml-2">Удалить</button>
                                             </td>
                                         </tr>
                                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
@@ -398,7 +402,7 @@ use Illuminate\Support\Facades\Auth;
                     <!-- Рабочие места -->
                     <div>
                         <h3 class="text-lg font-semibold mb-4">Рабочие места (боксы)</h3>
-                        <div class="mb-4 p-4 bg-gray-50 rounded border">
+                        <div id="crud-form-wp" <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::$currentLoop['key'] = 'wp-form-'.e($wp_edit ? 'edit-'.$workplace_id : 'new').''; ?>wire:key="wp-form-<?php echo e($wp_edit ? 'edit-'.$workplace_id : 'new'); ?>" class="mb-4 p-4 bg-gray-50 rounded border ring-2 <?php echo e($wp_edit ? 'ring-indigo-200' : 'ring-transparent'); ?>">
                             <h4 class="font-medium mb-3"><?php echo e($wp_edit ? 'Изменить место' : 'Новое рабочее место'); ?></h4>
                             <div class="grid grid-cols-1 gap-3">
                                 <div>
@@ -424,7 +428,7 @@ use Illuminate\Support\Facades\Auth;
 <?php $component = $__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581; ?>
 <?php unset($__componentOriginale3da9d84bb64e4bc2eeebaafabfb2581); ?>
 <?php endif; ?>
-                                    <select wire:model="wp_room_id" class="w-full mt-1 rounded-md border-gray-300 shadow-sm">
+                                    <select wire:model.live="wp_room_id" class="w-full mt-1 rounded-md border-gray-300 shadow-sm">
                                         <option value="">— выберите —</option>
                                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = \App\Models\Room::orderBy('name')->get(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $r): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                             <option value="<?php echo e($r->id); ?>"><?php echo e($r->name); ?></option>
@@ -478,14 +482,14 @@ use Illuminate\Support\Facades\Auth;
 <?php endif; ?>
                                     <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model' => 'wp_name','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['wire:model.live' => 'wp_name','class' => 'w-full mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('text-input'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['wire:model' => 'wp_name','class' => 'w-full mt-1']); ?>
+<?php $component->withAttributes(['wire:model.live' => 'wp_name','class' => 'w-full mt-1']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
 <?php echo $__env->renderComponent(); ?>
@@ -607,7 +611,7 @@ use Illuminate\Support\Facades\Auth;
                                             <td class="p-2 border"><?php echo e($wp->room?->name ?? '—'); ?></td>
                                             <td class="p-2 border whitespace-nowrap">
                                                 <button type="button" wire:click="editWorkplace(<?php echo e($wp->id); ?>)" class="text-indigo-600">Ред.</button>
-                                                <button type="button" wire:click="deleteWorkplace(<?php echo e($wp->id); ?>)" wire:confirm="Удалить это рабочее место?" class="text-red-600 ml-2">Удалить</button>
+                                                <button type="button" wire:click="askDeleteWorkplace(<?php echo e($wp->id); ?>, <?php echo \Illuminate\Support\Js::from($wp->name)->toHtml() ?>)" class="text-red-600 ml-2">Удалить</button>
                                             </td>
                                         </tr>
                                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
