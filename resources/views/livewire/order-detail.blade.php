@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\Car;
 use App\Models\Workplace;
+use App\Livewire\Concerns\WithPaymentConfirmation;
 use Livewire\Volt\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 new class extends Component
 {
+    use WithPaymentConfirmation;
+
     public ?Order $order = null;
     public bool $isNew = false;
 
@@ -28,6 +31,9 @@ new class extends Component
     public ?string $completed_at = null;
     public string $status = 'new';
     public float $total_amount = 0;
+    public float $subtotal_amount = 0;
+    public int $discount_percent = 0;
+    public float $discount_amount = 0;
 
     // Поля для добавления новой позиции
     public string $newItemType = 'part'; // 'part' или 'service'
@@ -127,6 +133,9 @@ new class extends Component
         $this->completed_at = $this->order->completed_at?->format('Y-m-d\TH:i');
         $this->status = $this->order->status;
         $this->total_amount = (float) $this->order->total_amount;
+        $this->subtotal_amount = (float) $this->order->subtotal_amount;
+        $this->discount_percent = (int) $this->order->discount_percent;
+        $this->discount_amount = (float) $this->order->discount_amount;
 
         // загрузка машин клиента
         $this->cars = Car::where('user_id', $this->user_id)->get();
@@ -208,20 +217,16 @@ new class extends Component
         session()->flash('item_message', 'Позиция удалена.');
     }
 
-    // АВТОМАТИЧЕСКИЙ пересчет суммы заказа
-    private function recalculateTotal()
+    private function recalculateTotal(): void
     {
-        // Перезагружаем заказ с новыми позициями
-        $this->order->load('items');
-        
-        $total = 0;
-        foreach ($this->order->items as $item) {
-            $total += ($item->price * $item->quantity);
-        }
+        $this->order->load(['items', 'client']);
+        $this->order->applyClientDiscount();
+        $this->order->refresh();
 
-        // Обновляем общую сумму в заказе
-        $this->order->update(['total_amount' => $total]);
-        $this->total_amount = $total; // Обновляем свойство для вывода на экран
+        $this->subtotal_amount = (float) $this->order->subtotal_amount;
+        $this->discount_percent = (int) $this->order->discount_percent;
+        $this->discount_amount = (float) $this->order->discount_amount;
+        $this->total_amount = (float) $this->order->total_amount;
     }
 
     private function resetItemForm()
@@ -232,11 +237,12 @@ new class extends Component
 
     public function payFromWallet(): void
     {
-        if (Auth::user()?->isClient() || $this->isNew || ! $this->order) {
+        $user = Auth::user();
+        if (! $user?->isClient() || $this->isNew || ! $this->order || $this->order->user_id !== $user->id) {
             abort(403);
         }
 
-        $this->order->load(['payments', 'client']);
+        $this->order->load('payments');
         $due = $this->dueAmount;
 
         if ($due <= 0) {
@@ -245,21 +251,20 @@ new class extends Component
             return;
         }
 
-        $client = $this->order->client;
-        if (! $client || ! $client->canAfford($due)) {
-            session()->flash('payment_message', 'На балансе клиента недостаточно средств (нужно '.number_format($due, 2, '.', ' ').' ₽).');
+        if (! $user->canAfford($due)) {
+            session()->flash('payment_message', 'Недостаточно средств на балансе (нужно '.number_format($due, 2, '.', ' ').' ₽).');
 
             return;
         }
 
-        DB::transaction(function () use ($client, $due) {
-            if (! $client->withdraw($due)) {
+        DB::transaction(function () use ($user, $due) {
+            if (! $user->withdrawAmount($due)) {
                 throw new \RuntimeException('Не удалось списать средства.');
             }
 
             Payment::create([
                 'order_id' => $this->order->id,
-                'user_id' => Auth::id(),
+                'user_id' => $user->id,
                 'paid_at' => now(),
                 'amount' => $due,
                 'method' => 'wallet',
@@ -267,13 +272,15 @@ new class extends Component
         });
 
         $this->order->load('payments');
-        session()->flash('payment_message', 'Оплата с баланса клиента выполнена: '.number_format($due, 2, '.', ' ').' ₽.');
+        session()->flash('payment_message', 'Оплата выполнена: '.number_format($due, 2, '.', ' ').' ₽.');
     }
 };
 ?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+        @include('livewire.partials.payment-modal')
         
         <div class="mb-4 flex items-center justify-between">
             <a href="{{ route('orders.index') }}" class="text-indigo-600 hover:text-indigo-900 font-medium">
@@ -383,13 +390,23 @@ new class extends Component
                     <div class="bg-white shadow sm:rounded-lg overflow-hidden">
                         <div class="p-6 border-b bg-gray-50 flex flex-wrap justify-between items-center gap-4">
                             <h3 class="text-xl font-bold text-gray-800">Состав заказа (Чек)</h3>
-                            <div class="text-right">
+                            <div class="text-right text-sm space-y-1">
+                                @if($subtotal_amount > 0 && $discount_amount > 0)
+                                    <div class="text-gray-600">Подытог: {{ number_format($subtotal_amount, 2, '.', ' ') }} ₽</div>
+                                    <div class="text-indigo-600">Скидка {{ $discount_percent }}%: −{{ number_format($discount_amount, 2, '.', ' ') }} ₽</div>
+                                @endif
                                 <div class="text-2xl font-black text-green-600">
                                     Итого: {{ number_format($total_amount, 2, '.', ' ') }} ₽
                                 </div>
+                                @php $payStatus = $order->payment_status; @endphp
+                                <div class="text-xs font-semibold {{ $payStatus === 'paid' ? 'text-green-700' : ($payStatus === 'partial' ? 'text-amber-700' : 'text-red-700') }}">
+                                    {{ \App\Models\Order::paymentStatusLabel($payStatus) }}
+                                </div>
                                 @if($this->paidAmount > 0)
-                                    <div class="text-sm text-gray-600">Оплачено: {{ number_format($this->paidAmount, 2, '.', ' ') }} ₽</div>
-                                    <div class="text-sm font-semibold text-amber-700">К оплате: {{ number_format($this->dueAmount, 2, '.', ' ') }} ₽</div>
+                                    <div class="text-gray-600">Оплачено: {{ number_format($this->paidAmount, 2, '.', ' ') }} ₽</div>
+                                @endif
+                                @if($this->dueAmount > 0)
+                                    <div class="font-semibold text-amber-700">К оплате: {{ number_format($this->dueAmount, 2, '.', ' ') }} ₽</div>
                                 @endif
                             </div>
                         </div>
@@ -400,14 +417,13 @@ new class extends Component
                             </div>
                         @endif
 
-                        @if(!Auth::user()?->isClient() && $this->dueAmount > 0 && $order->client)
+                        @if(Auth::user()?->isClient() && $this->dueAmount > 0)
                             <div class="px-6 py-3 bg-indigo-50 border-b flex flex-wrap items-center justify-between gap-3">
                                 <div class="text-sm text-indigo-900">
-                                    Баланс клиента <strong>{{ $order->client->full_name ?? $order->client->name }}</strong>:
-                                    {{ number_format($order->client->getBalance(), 2, '.', ' ') }} ₽
+                                    Ваш баланс: <strong>{{ number_format(Auth::user()->getBalance(), 2, '.', ' ') }} ₽</strong>
                                 </div>
-                                <x-primary-button type="button" wire:click="payFromWallet" wire:confirm="Списать {{ number_format($this->dueAmount, 2, '.', ' ') }} ₽ с баланса клиента?">
-                                    Оплатить с баланса
+                                <x-primary-button type="button" wire:click="askPayCurrentOrder({{ $this->dueAmount }}, @js('заказ #'.$order->id))">
+                                    Оплатить заказ
                                 </x-primary-button>
                             </div>
                         @endif

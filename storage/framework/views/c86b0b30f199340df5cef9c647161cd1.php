@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Auth;
             <?php echo $__env->make('livewire.partials.delete-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
             <!-- Форма -->
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!Auth::user()->isClient()): ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->canManageCars()): ?>
             <div id="crud-form" <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::$currentLoop['key'] = 'car-form-'.e($isEditMode ? 'edit-'.$car_id : 'new').''; ?>wire:key="car-form-<?php echo e($isEditMode ? 'edit-'.$car_id : 'new'); ?>" class="mb-8 p-4 bg-gray-50 rounded border ring-2 <?php echo e($isEditMode ? 'ring-indigo-200' : 'ring-transparent'); ?>">
                 <h3 class="text-lg font-semibold mb-4"><?php echo e($isEditMode ? 'Изменить автомобиль' : 'Новый автомобиль'); ?></h3>
                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isEditMode): ?>
@@ -526,7 +526,7 @@ use Illuminate\Support\Facades\Auth;
                             <td class="p-2 border"><?php echo e($car->vin); ?></td>
                             <td class="p-2 border"><?php echo e($car->license_plate ?? '—'); ?></td>
                             <td class="p-2 border">
-                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!Auth::user()->isClient()): ?>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->canManageCars()): ?>
                                     <button type="button" wire:click="edit(<?php echo e($car->id); ?>)" class="text-indigo-600">Ред.</button>
                                     <button type="button" wire:click="askDelete(<?php echo e($car->id); ?>, <?php echo \Illuminate\Support\Js::from($car->brand.' '.$car->model)->toHtml() ?>)" class="text-red-600 ml-2">Удалить</button>
                                 <?php else: ?>

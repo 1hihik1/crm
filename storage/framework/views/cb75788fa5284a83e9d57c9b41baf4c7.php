@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Auth;
 
             <?php echo $__env->make('livewire.partials.delete-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!Auth::user()->isClient()): ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->canManage()): ?>
                 <div id="crud-form" <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::$currentLoop['key'] = 'service-form-'.e($isEditMode ? 'edit-'.$service_id : 'new').''; ?>wire:key="service-form-<?php echo e($isEditMode ? 'edit-'.$service_id : 'new'); ?>" class="mb-8 p-4 bg-gray-50 rounded border ring-2 <?php echo e($isEditMode ? 'ring-indigo-200' : 'ring-transparent'); ?>">
                     <h3 class="text-lg font-semibold mb-4"><?php echo e($isEditMode ? 'Изменить услугу' : 'Новая услуга'); ?></h3>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isEditMode): ?>
@@ -303,9 +303,11 @@ use Illuminate\Support\Facades\Auth;
                                 <td class="p-2 border text-sm text-gray-600 max-w-md truncate"><?php echo e($service->description ?? '—'); ?></td>
                                 <td class="p-2 border"><?php echo e(number_format((float) $service->price, 2, '.', ' ')); ?> ₽</td>
                                 <td class="p-2 border">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!Auth::user()->isClient()): ?>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->canManage()): ?>
                                         <button type="button" wire:click="edit(<?php echo e($service->id); ?>)" class="text-indigo-600">Ред.</button>
                                         <button type="button" wire:click="askDelete(<?php echo e($service->id); ?>, <?php echo \Illuminate\Support\Js::from($service->name)->toHtml() ?>)" class="text-red-600 ml-2">Удалить</button>
+                                    <?php else: ?>
+                                        <span class="text-gray-400 text-sm">Только просмотр</span>
                                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </td>
                             </tr>

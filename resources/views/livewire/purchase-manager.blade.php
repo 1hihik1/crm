@@ -9,6 +9,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\StorageLocation;
 use App\Models\Supplier;
+use App\Models\SupplierPartPrice;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Livewire\Concerns\ScrollsToCrudForm;
@@ -23,6 +24,13 @@ new class extends Component
     use ScrollsToCrudForm;
     use WithDeleteConfirmation;
     use WithPagination;
+
+    public function canManage(): bool
+    {
+        $user = Auth::user();
+
+        return $user && ($user->isAdmin() || $user->isManager());
+    }
 
     public string $search = '';
 
@@ -85,6 +93,44 @@ new class extends Component
         $this->resetPage();
     }
 
+    public function updated($property): void
+    {
+        if ($property === 'supplier_id') {
+            $this->applySupplierPricesToLines();
+
+            return;
+        }
+
+        if (preg_match('/^itemLines\.(\d+)\.part_id$/', $property, $matches)) {
+            $this->fillLinePrice((int) $matches[1]);
+        }
+    }
+
+    protected function fillLinePrice(int $index): void
+    {
+        if (! isset($this->itemLines[$index])) {
+            return;
+        }
+
+        $partId = $this->itemLines[$index]['part_id'] ?? null;
+
+        if (! $this->supplier_id || ! $partId) {
+            $this->itemLines[$index]['purchase_price'] = '';
+
+            return;
+        }
+
+        $price = SupplierPartPrice::priceFor((int) $this->supplier_id, (int) $partId);
+        $this->itemLines[$index]['purchase_price'] = $price !== null ? (string) $price : '';
+    }
+
+    protected function applySupplierPricesToLines(): void
+    {
+        foreach (array_keys($this->itemLines) as $index) {
+            $this->fillLinePrice($index);
+        }
+    }
+
     protected function rules(): array
     {
         return [
@@ -122,7 +168,12 @@ new class extends Component
                 ->orderBy('surname')
                 ->orderBy('name')
                 ->get(),
-            'parts' => Part::orderBy('name')->get(),
+            'parts' => $this->supplier_id
+                ? Part::query()
+                    ->whereHas('supplierPrices', fn ($q) => $q->where('supplier_id', $this->supplier_id))
+                    ->orderBy('name')
+                    ->get()
+                : collect(),
             'storageLocations' => StorageLocation::with('room')->orderBy('id')->get(),
             'statuses' => self::purchaseStatuses(),
         ];
@@ -221,7 +272,23 @@ new class extends Component
 
     public function store(): void
     {
+        if (! $this->canManage()) {
+            abort(403);
+        }
+
         $this->validate();
+
+        foreach ($this->itemLines as $index => $line) {
+            if (empty($line['part_id'])) {
+                continue;
+            }
+
+            if ($line['purchase_price'] === '' || ! SupplierPartPrice::priceFor((int) $this->supplier_id, (int) $line['part_id'])) {
+                $this->addError('itemLines.'.$index.'.part_id', 'Запчасть отсутствует в прайс-листе выбранного поставщика.');
+
+                return;
+            }
+        }
 
         $total = $this->totalFromLines();
         if ((float) $total <= 0) {
@@ -283,6 +350,10 @@ new class extends Component
 
     public function delete(int $id): void
     {
+        if (! $this->canManage()) {
+            abort(403);
+        }
+
         Purchase::findOrFail($id)->delete();
         $this->resetPurchaseForm();
         session()->flash('message', 'Закупка удалена.');
@@ -314,7 +385,7 @@ new class extends Component
 
             @include('livewire.partials.delete-modal')
 
-            @if (!Auth::user()->isClient())
+            @if ($this->canManage())
                 <div id="crud-form" wire:key="purchase-form-{{ $isEditMode ? 'edit-'.$purchase_id : 'new' }}" class="mb-8 p-4 bg-gray-50 rounded border space-y-4 ring-2 {{ $isEditMode ? 'ring-indigo-200' : 'ring-transparent' }}">
                     <h3 class="text-lg font-semibold">{{ $isEditMode ? 'Изменить закупку' : 'Новая закупка' }}</h3>
                     @if($isEditMode)
@@ -364,8 +435,13 @@ new class extends Component
                     <div>
                         <div class="flex justify-between items-center mb-2">
                             <span class="font-medium">Позиции (запчасти)</span>
-                            <x-secondary-button type="button" wire:click="addItemLine">+ Строка</x-secondary-button>
+                            <x-secondary-button type="button" wire:click="addItemLine" :disabled="! $supplier_id">+ Строка</x-secondary-button>
                         </div>
+                        @if(! $supplier_id)
+                            <p class="text-sm text-amber-700 mb-2">Сначала выберите поставщика — цены подставятся из его прайс-листа автоматически.</p>
+                        @else
+                            <p class="text-sm text-gray-500 mb-2">Цена закупки берётся из прайс-листа поставщика и не редактируется вручную.</p>
+                        @endif
                         <x-input-error :messages="$errors->get('itemLines')" class="mb-2" />
                         <div class="overflow-x-auto border rounded">
                             <table class="w-full text-sm text-left">
@@ -382,7 +458,7 @@ new class extends Component
                                     @foreach($itemLines as $idx => $line)
                                         <tr wire:key="line-{{ $idx }}">
                                             <td class="p-2 border align-top">
-                                                <select wire:model="itemLines.{{ $idx }}.part_id" class="w-full rounded-md border-gray-300 shadow-sm min-w-[180px]">
+                                                <select wire:model.live="itemLines.{{ $idx }}.part_id" @disabled(! $supplier_id) class="w-full rounded-md border-gray-300 shadow-sm min-w-[180px]">
                                                     <option value="">—</option>
                                                     @foreach($parts as $part)
                                                         <option value="{{ $part->id }}">{{ $part->name }}</option>
@@ -402,8 +478,12 @@ new class extends Component
                                                 <x-text-input type="number" min="1" wire:model="itemLines.{{ $idx }}.quantity" class="w-full" />
                                                 <x-input-error :messages="$errors->get('itemLines.'.$idx.'.quantity')" class="mt-1" />
                                             </td>
-                                            <td class="p-2 border align-top w-28">
-                                                <x-text-input type="number" step="0.01" wire:model="itemLines.{{ $idx }}.purchase_price" class="w-full" />
+                                            <td class="p-2 border align-top w-32">
+                                                @if($line['purchase_price'] !== '')
+                                                    <span class="font-semibold text-gray-800">{{ number_format((float) $line['purchase_price'], 2, '.', ' ') }} ₽</span>
+                                                @else
+                                                    <span class="text-xs text-red-500">Нет в прайсе</span>
+                                                @endif
                                                 <x-input-error :messages="$errors->get('itemLines.'.$idx.'.purchase_price')" class="mt-1" />
                                             </td>
                                             <td class="p-2 border align-top">
@@ -451,9 +531,11 @@ new class extends Component
                                 <td class="p-2 border">{{ $statuses[$pur->status] ?? $pur->status }}</td>
                                 <td class="p-2 border">{{ $pur->total_amount }} ₽</td>
                                 <td class="p-2 border whitespace-nowrap">
-                                    @if (!Auth::user()->isClient())
+                                    @if ($this->canManage())
                                         <button type="button" wire:click="edit({{ $pur->id }})" class="text-indigo-600">Ред.</button>
                                         <button type="button" wire:click="askDelete({{ $pur->id }}, @js('закупку #'.$pur->id))" class="text-red-600 ml-2">Удалить</button>
+                                    @else
+                                        <span class="text-gray-400 text-sm">Только просмотр</span>
                                     @endif
                                 </td>
                             </tr>

@@ -4,12 +4,19 @@ use App\Models\Part;
 use App\Livewire\Concerns\ScrollsToCrudForm;
 use App\Livewire\Concerns\WithDeleteConfirmation;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 new class extends Component
 {
+    public function canManage(): bool
+    {
+        $user = Auth::user();
+
+        return $user && ($user->isAdmin() || $user->isManager());
+    }
     use ScrollsToCrudForm;
     use WithDeleteConfirmation;
     use WithFileUploads;
@@ -104,6 +111,10 @@ new class extends Component
 
     public function store(): void
     {
+        if (! $this->canManage()) {
+            abort(403);
+        }
+
         $this->validate();
 
         $data = [
@@ -144,6 +155,10 @@ new class extends Component
 
     public function delete(int $id): void
     {
+        if (! $this->canManage()) {
+            abort(403);
+        }
+
         $part = Part::findOrFail($id);
         if ($part->image_path) {
             Storage::disk('public')->delete($part->image_path);
@@ -172,7 +187,7 @@ new class extends Component
 
             @include('livewire.partials.delete-modal')
 
-            @if (!auth()->user()->isClient())
+            @if ($this->canManage())
             <div id="crud-form" wire:key="part-form-{{ $isEditMode ? 'edit-'.$part_id : 'new' }}" class="mb-8 p-4 bg-gray-50 rounded border ring-2 {{ $isEditMode ? 'ring-indigo-200' : 'ring-transparent' }}">
                 <h3 class="text-lg font-semibold mb-4">{{ $isEditMode ? 'Изменить запчасть' : 'Новая запчасть' }}</h3>
                 @if($isEditMode)
@@ -253,7 +268,7 @@ new class extends Component
                                 <td class="p-2 border">{{ $part->name }}</td>
                                 <td class="p-2 border">{{ $part->retail_price }} руб.</td>
                                 <td class="p-2 border">
-                                    @if (!auth()->user()->isClient())
+                                    @if ($this->canManage())
                                         <button type="button" wire:click="edit({{ $part->id }})" class="text-indigo-600">Ред.</button>
                                         <button type="button" wire:click="askDelete({{ $part->id }}, @js($part->name))" class="text-red-600 ml-2">Удалить</button>
                                     @else

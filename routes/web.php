@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\AdminToolsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Service;
@@ -19,14 +18,11 @@ Route::get('/dashboard', DashboardController::class)
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Volt::route('/users', 'user-manager')->name('users.index');
-    Route::post('/admin/cache/clear', [AdminToolsController::class, 'clearCache'])->name('admin.cache.clear');
-    Route::post('/admin/config/clear', [AdminToolsController::class, 'clearConfig'])->name('admin.config.clear');
-    Route::post('/admin/views/clear', [AdminToolsController::class, 'clearViews'])->name('admin.views.clear');
+    Volt::route('/rooms', 'room-manager')->name('rooms.index');
 });
 
 Route::middleware(['auth', 'role:admin|employee'])->group(function () {
     Volt::route('/parts', 'parts-manager')->name('parts.index');
-    Volt::route('/rooms', 'room-manager')->name('rooms.index');
     Volt::route('/services', 'service-manager')->name('services.index');
     Volt::route('/purchases', 'purchase-manager')->name('purchases.index');
 });
@@ -40,10 +36,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Volt::route('/cars', 'car-manager')->name('cars.index');
-    // Volt::route('/orders', 'order-manager')->name('orders.index');
     Volt::route('/orders', 'order-list')->name('orders.index');
     Volt::route('/orders/{id}', 'order-detail')->name('orders.detail');
 });
-
 
 require __DIR__.'/auth.php';

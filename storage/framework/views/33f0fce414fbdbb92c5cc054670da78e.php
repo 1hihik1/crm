@@ -4,6 +4,7 @@ use App\Models\Part;
 use App\Livewire\Concerns\ScrollsToCrudForm;
 use App\Livewire\Concerns\WithDeleteConfirmation;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -23,7 +24,7 @@ use Livewire\WithPagination;
 
             <?php echo $__env->make('livewire.partials.delete-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!auth()->user()->isClient()): ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->canManage()): ?>
             <div id="crud-form" <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::$currentLoop['key'] = 'part-form-'.e($isEditMode ? 'edit-'.$part_id : 'new').''; ?>wire:key="part-form-<?php echo e($isEditMode ? 'edit-'.$part_id : 'new'); ?>" class="mb-8 p-4 bg-gray-50 rounded border ring-2 <?php echo e($isEditMode ? 'ring-indigo-200' : 'ring-transparent'); ?>">
                 <h3 class="text-lg font-semibold mb-4"><?php echo e($isEditMode ? 'Изменить запчасть' : 'Новая запчасть'); ?></h3>
                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isEditMode): ?>
@@ -438,7 +439,7 @@ use Livewire\WithPagination;
                                 <td class="p-2 border"><?php echo e($part->name); ?></td>
                                 <td class="p-2 border"><?php echo e($part->retail_price); ?> руб.</td>
                                 <td class="p-2 border">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!auth()->user()->isClient()): ?>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->canManage()): ?>
                                         <button type="button" wire:click="edit(<?php echo e($part->id); ?>)" class="text-indigo-600">Ред.</button>
                                         <button type="button" wire:click="askDelete(<?php echo e($part->id); ?>, <?php echo \Illuminate\Support\Js::from($part->name)->toHtml() ?>)" class="text-red-600 ml-2">Удалить</button>
                                     <?php else: ?>

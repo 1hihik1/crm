@@ -27,7 +27,7 @@ new class extends Component
         $this->validate();
 
         $user = Auth::user();
-        $user->deposit((float) $this->amount);
+        $user->depositAmount((float) $this->amount);
 
         session()->flash('message', 'Баланс пополнен на '.number_format((float) $this->amount, 2, '.', ' ').' ₽.');
         $this->reset(['amount', 'preset']);
@@ -86,7 +86,7 @@ new class extends Component
                 </x-primary-button>
 
                 <p class="mt-4 text-xs text-gray-400 text-center">
-                    После пополнения оплатить заказ можно в карточке заказа — кнопка «Оплатить с баланса».
+                    После пополнения оплатить заказ можно в личном кабинете или в карточке заказа.
                 </p>
             </div>
         </div>

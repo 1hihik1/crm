@@ -84,7 +84,6 @@ new class extends Component
             'position' => $this->position ?: null,
             'salary' => $this->salary === '' ? null : $this->salary,
             'discount' => $this->discount === '' ? 0 : $this->discount,
-            'balance' => $this->balance === '' ? 0 : $this->balance,
         ];
 
         if ($this->password !== '') {
@@ -111,7 +110,7 @@ new class extends Component
         $this->position = (string) ($u->position ?? '');
         $this->salary = $u->salary !== null ? (string) $u->salary : '';
         $this->discount = (string) $u->discount;
-        $this->balance = (string) $u->balance;
+        $this->balance = $u->hasRole('client') ? (string) $u->getBalance() : '0';
         $this->role = $u->roles->first()?->name ?? 'client';
         $this->password = '';
         $this->isEditMode = true;
@@ -253,7 +252,7 @@ new class extends Component
                                 <td class="p-2 border">{{ $roles[$u->roles->first()?->name ?? ''] ?? '—' }}</td>
                                 <td class="p-2 border">{{ $u->position ?? '—' }}</td>
                                 <td class="p-2 border">{{ $u->discount }}%</td>
-                                <td class="p-2 border">{{ number_format((float) $u->balance, 2, '.', ' ') }} ₽</td>
+                                <td class="p-2 border">{{ $u->hasRole('client') ? number_format($u->getBalance(), 2, '.', ' ') : '—' }} ₽</td>
                                 <td class="p-2 border whitespace-nowrap">
                                     <button type="button" wire:click="edit({{ $u->id }})" class="text-indigo-600">Ред.</button>
                                     <button type="button" wire:click="askDelete({{ $u->id }}, @js($u->full_name))" class="text-red-600 ml-2">Удалить</button>

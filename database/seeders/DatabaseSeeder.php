@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         InfrastructureSeeder::class,
         ServiceSeeder::class,
         PartSeeder::class,
+        SupplierPartPriceSeeder::class,
     ]);
 
     //вау это же админ
@@ -66,7 +67,8 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('password')
         ]));
         $client->assignRole('client');
-        $client->update(['balance' => 25000, 'discount' => 5]);
+        $client->update(['discount' => 5]);
+        $client->depositAmount(25000);
 
         //создание каждому по 2 автомобиля
         \App\Models\Car::create([

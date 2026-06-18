@@ -5,6 +5,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\StorageLocation;
 use App\Models\Supplier;
+use App\Models\SupplierPartPrice;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Livewire\Concerns\ScrollsToCrudForm;
@@ -28,7 +29,7 @@ use Livewire\WithPagination;
 
             <?php echo $__env->make('livewire.partials.delete-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!Auth::user()->isClient()): ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->canManage()): ?>
                 <div id="crud-form" <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::$currentLoop['key'] = 'purchase-form-'.e($isEditMode ? 'edit-'.$purchase_id : 'new').''; ?>wire:key="purchase-form-<?php echo e($isEditMode ? 'edit-'.$purchase_id : 'new'); ?>" class="mb-8 p-4 bg-gray-50 rounded border space-y-4 ring-2 <?php echo e($isEditMode ? 'ring-indigo-200' : 'ring-transparent'); ?>">
                     <h3 class="text-lg font-semibold"><?php echo e($isEditMode ? 'Изменить закупку' : 'Новая закупка'); ?></h3>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isEditMode): ?>
@@ -311,14 +312,14 @@ use Livewire\WithPagination;
                             <span class="font-medium">Позиции (запчасти)</span>
                             <?php if (isset($component)) { $__componentOriginal3b0e04e43cf890250cc4d85cff4d94af = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3b0e04e43cf890250cc4d85cff4d94af = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.secondary-button','data' => ['type' => 'button','wire:click' => 'addItemLine']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.secondary-button','data' => ['type' => 'button','wire:click' => 'addItemLine','disabled' => ! $supplier_id]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('secondary-button'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['type' => 'button','wire:click' => 'addItemLine']); ?>
+<?php $component->withAttributes(['type' => 'button','wire:click' => 'addItemLine','disabled' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(! $supplier_id)]); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 + Строка <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
@@ -331,6 +332,11 @@ use Livewire\WithPagination;
 <?php unset($__componentOriginal3b0e04e43cf890250cc4d85cff4d94af); ?>
 <?php endif; ?>
                         </div>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(! $supplier_id): ?>
+                            <p class="text-sm text-amber-700 mb-2">Сначала выберите поставщика — цены подставятся из его прайс-листа автоматически.</p>
+                        <?php else: ?>
+                            <p class="text-sm text-gray-500 mb-2">Цена закупки берётся из прайс-листа поставщика и не редактируется вручную.</p>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         <?php if (isset($component)) { $__componentOriginalf94ed9c5393ef72725d159fe01139746 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalf94ed9c5393ef72725d159fe01139746 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.input-error','data' => ['messages' => $errors->get('itemLines'),'class' => 'mb-2']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -368,7 +374,7 @@ use Livewire\WithPagination;
                                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $itemLines; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $idx => $line): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                         <tr <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::$currentLoop['key'] = 'line-'.e($idx).''; ?>wire:key="line-<?php echo e($idx); ?>">
                                             <td class="p-2 border align-top">
-                                                <select wire:model="itemLines.<?php echo e($idx); ?>.part_id" class="w-full rounded-md border-gray-300 shadow-sm min-w-[180px]">
+                                                <select wire:model.live="itemLines.<?php echo e($idx); ?>.part_id" <?php if(! $supplier_id): echo 'disabled'; endif; ?> class="w-full rounded-md border-gray-300 shadow-sm min-w-[180px]">
                                                     <option value="">—</option>
                                                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $parts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $part): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                         <option value="<?php echo e($part->id); ?>"><?php echo e($part->name); ?></option>
@@ -451,29 +457,12 @@ use Livewire\WithPagination;
 <?php unset($__componentOriginalf94ed9c5393ef72725d159fe01139746); ?>
 <?php endif; ?>
                                             </td>
-                                            <td class="p-2 border align-top w-28">
-                                                <?php if (isset($component)) { $__componentOriginal18c21970322f9e5c938bc954620c12bb = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal18c21970322f9e5c938bc954620c12bb = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.text-input','data' => ['type' => 'number','step' => '0.01','wire:model' => 'itemLines.'.e($idx).'.purchase_price','class' => 'w-full']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('text-input'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['type' => 'number','step' => '0.01','wire:model' => 'itemLines.'.e($idx).'.purchase_price','class' => 'w-full']); ?>
-<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
-
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal18c21970322f9e5c938bc954620c12bb)): ?>
-<?php $attributes = $__attributesOriginal18c21970322f9e5c938bc954620c12bb; ?>
-<?php unset($__attributesOriginal18c21970322f9e5c938bc954620c12bb); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal18c21970322f9e5c938bc954620c12bb)): ?>
-<?php $component = $__componentOriginal18c21970322f9e5c938bc954620c12bb; ?>
-<?php unset($__componentOriginal18c21970322f9e5c938bc954620c12bb); ?>
-<?php endif; ?>
+                                            <td class="p-2 border align-top w-32">
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($line['purchase_price'] !== ''): ?>
+                                                    <span class="font-semibold text-gray-800"><?php echo e(number_format((float) $line['purchase_price'], 2, '.', ' ')); ?> ₽</span>
+                                                <?php else: ?>
+                                                    <span class="text-xs text-red-500">Нет в прайсе</span>
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                 <?php if (isset($component)) { $__componentOriginalf94ed9c5393ef72725d159fe01139746 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalf94ed9c5393ef72725d159fe01139746 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.input-error','data' => ['messages' => $errors->get('itemLines.'.$idx.'.purchase_price'),'class' => 'mt-1']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -603,9 +592,11 @@ use Livewire\WithPagination;
                                 <td class="p-2 border"><?php echo e($statuses[$pur->status] ?? $pur->status); ?></td>
                                 <td class="p-2 border"><?php echo e($pur->total_amount); ?> ₽</td>
                                 <td class="p-2 border whitespace-nowrap">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!Auth::user()->isClient()): ?>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($this->canManage()): ?>
                                         <button type="button" wire:click="edit(<?php echo e($pur->id); ?>)" class="text-indigo-600">Ред.</button>
                                         <button type="button" wire:click="askDelete(<?php echo e($pur->id); ?>, <?php echo \Illuminate\Support\Js::from('закупку #'.$pur->id)->toHtml() ?>)" class="text-red-600 ml-2">Удалить</button>
+                                    <?php else: ?>
+                                        <span class="text-gray-400 text-sm">Только просмотр</span>
                                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </td>
                             </tr>
